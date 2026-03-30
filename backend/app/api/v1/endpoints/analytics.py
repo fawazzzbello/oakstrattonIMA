@@ -6,7 +6,7 @@ from sqlalchemy import select, func, and_
 from app.core.deps import get_db, require_manager, get_current_active_user
 from app.models.user import User, UserRole
 from app.models.campaign import Campaign, CampaignMetrics, CampaignStatus, Deliverable
-from app.models.payment import Invoice, Payout, InvoiceStatus
+from app.models.payment import Invoice, Payout, InvoiceStatus, PayoutStatus
 from app.models.influencer import Influencer
 from pydantic import BaseModel
 from decimal import Decimal
@@ -75,14 +75,14 @@ async def get_agency_overview(
     revenue_result = await db.execute(
         select(func.coalesce(func.sum(Invoice.total_amount), 0)).where(
             Invoice.status == InvoiceStatus.PAID,
-            Invoice.paid_at >= str(year_start),
+            Invoice.paid_at >= year_start,
         )
     )
     total_revenue_ytd = Decimal(str(revenue_result.scalar_one() or 0))
 
     payout_result = await db.execute(
         select(func.coalesce(func.sum(Payout.amount), 0)).where(
-            Payout.status.in_(["completed"]),
+            Payout.status == PayoutStatus.COMPLETED,
         )
     )
     total_payout_ytd = Decimal(str(payout_result.scalar_one() or 0))

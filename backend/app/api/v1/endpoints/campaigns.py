@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from app.core.deps import get_db, get_current_active_user, require_manager, require_client
+from app.core.deps import get_db, get_current_active_user, require_manager
 from app.core.exceptions import NotFoundError, ForbiddenError
 from app.models.user import User, UserRole
 from app.models.campaign import (

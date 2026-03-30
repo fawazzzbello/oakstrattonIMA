@@ -1,16 +1,10 @@
 from typing import AsyncGenerator, Optional
 from fastapi import Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.session import AsyncSessionLocal
 from app.core.security import verify_token
 from app.core.exceptions import UnauthorizedError, ForbiddenError
 from app.models.user import User, UserRole
-from app.db.session import get_db as _get_db
-
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with AsyncSessionLocal() as session:
-        yield session
+from app.db.session import get_db  # noqa: F401 — re-exported for FastAPI Depends
 
 
 async def get_current_user(
@@ -25,7 +19,9 @@ async def get_current_user(
         raise UnauthorizedError("Invalid or expired token")
 
     from sqlalchemy import select
-    result = await db.execute(select(User).where(User.id == int(user_id), User.is_active == True))
+    result = await db.execute(
+        select(User).where(User.id == int(user_id), User.is_active == True)  # noqa: E712
+    )
     user = result.scalar_one_or_none()
     if not user:
         raise UnauthorizedError("User not found or inactive")

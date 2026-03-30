@@ -1,6 +1,20 @@
 # OakstrattonIMA Backend Service
 # For frontend and worker services, create separate Railway services
 # in the dashboard and configure their dockerfilePath or rootDirectory.
+# ============================================================
+# Railway Project Configuration for OakstrattonIMA
+#
+# This file configures the BACKEND service.
+# Build context: repo root (Railway default).
+# Dockerfiles use root-relative paths for COPY commands.
+#
+# For frontend and worker services:
+#   - Create each as a separate Railway service in the dashboard
+#   - Set dockerfilePath: frontend/Dockerfile (frontend)
+#   - Set dockerfilePath: backend/Dockerfile.celery (worker)
+#
+# Add PostgreSQL and Redis via Railway dashboard plugins.
+# ============================================================
 
 [build]
 builder = "DOCKERFILE"
