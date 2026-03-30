@@ -131,7 +131,7 @@ class Transaction(Base, TimestampMixin):
     processor_response: Mapped[Optional[dict]] = mapped_column(JSON)
 
     description: Mapped[Optional[str]] = mapped_column(Text)
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON)
+    extra_data: Mapped[Optional[dict]] = mapped_column(JSON)
 
     # Relationships
     invoice: Mapped[Optional["Invoice"]] = relationship(back_populates="transactions")
