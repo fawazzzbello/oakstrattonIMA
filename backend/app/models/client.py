@@ -17,7 +17,7 @@ class Client(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
-    status: Mapped[ClientStatus] = mapped_column(Enum(ClientStatus), default=ClientStatus.LEAD)
+    status: Mapped[ClientStatus] = mapped_column(Enum(ClientStatus, name="clientstatus"), default=ClientStatus.LEAD)
 
     # Company info
     company_name: Mapped[str] = mapped_column(String(255), nullable=False)
