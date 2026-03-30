@@ -1,45 +1,14 @@
+# OakstrattonIMA Backend Service
+# For frontend and worker services, create separate Railway services
+# in the dashboard and configure their dockerfilePath or rootDirectory.
+
 [build]
 builder = "DOCKERFILE"
+dockerfilePath = "backend/Dockerfile"
 
-# ============================================================
-# Railway Project Configuration for OakstrattonIMA
-#
-# Services defined here:
-#   backend   — FastAPI app (Dockerfile in /backend)
-#   frontend  — React SPA (Dockerfile in /frontend)
-#   worker    — Celery worker (Dockerfile.celery in /backend)
-#
-# Add PostgreSQL and Redis via Railway dashboard plugins.
-# ============================================================
-
-[[services]]
-name = "backend"
-source = "backend"
-dockerfile = "Dockerfile"
-
-[services.deploy]
+[deploy]
 startCommand = "sh -c 'alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2'"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
-
-[services.variables]
-PORT = "8000"
-
-[[services]]
-name = "frontend"
-source = "frontend"
-dockerfile = "Dockerfile"
-
-[services.deploy]
-healthcheckPath = "/health"
-
-[[services]]
-name = "worker"
-source = "backend"
-dockerfile = "Dockerfile.celery"
-
-[services.deploy]
-startCommand = "celery -A app.tasks.worker worker --loglevel=info --concurrency=4"
-restartPolicyType = "ON_FAILURE"
