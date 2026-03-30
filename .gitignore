@@ -1,0 +1,101 @@
+# ============================
+# OakstrattonIMA .gitignore
+# ============================
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+
+# Testing & Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Ruff / Linting
+.ruff_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/build/
+frontend/.cache/
+.npm
+.eslintcache
+*.tsbuildinfo
+
+# Vite
+frontend/.vite/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Railway
+.railway/
+
+# Media uploads (store in S3, not git)
+backend/media/
+backend/uploads/
+
+# Alembic (don't ignore versions — they should be committed)
+# migrations/versions/  ← intentionally NOT ignored
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
