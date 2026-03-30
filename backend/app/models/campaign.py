@@ -30,7 +30,8 @@ class CampaignType(str, enum.Enum):
     AFFILIATE = "affiliate"
 
 
-class InfluencerStatus(str, enum.Enum):
+class CampaignInfluencerStatus(str, enum.Enum):
+    """Status of an influencer within a specific campaign pipeline."""
     INVITED = "invited"
     NEGOTIATING = "negotiating"
     CONTRACTED = "contracted"
@@ -77,9 +78,11 @@ class Campaign(Base, TimestampMixin):
     # Basic info
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
-    campaign_type: Mapped[CampaignType] = mapped_column(Enum(CampaignType))
+    campaign_type: Mapped[CampaignType] = mapped_column(
+        Enum(CampaignType, name="campaigntype"), nullable=False
+    )
     status: Mapped[CampaignStatus] = mapped_column(
-        Enum(CampaignStatus), default=CampaignStatus.DRAFT
+        Enum(CampaignStatus, name="campaignstatus"), default=CampaignStatus.DRAFT
     )
 
     # Timeline
@@ -141,8 +144,9 @@ class CampaignInfluencer(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     campaign_id: Mapped[int] = mapped_column(ForeignKey("campaigns.id"), nullable=False)
     influencer_id: Mapped[int] = mapped_column(ForeignKey("influencers.id"), nullable=False)
-    status: Mapped[InfluencerStatus] = mapped_column(
-        Enum(InfluencerStatus), default=InfluencerStatus.INVITED
+    status: Mapped[CampaignInfluencerStatus] = mapped_column(
+        Enum(CampaignInfluencerStatus, name="campaigninfluencerstatus"),
+        default=CampaignInfluencerStatus.INVITED,
     )
 
     # Negotiation
@@ -171,9 +175,11 @@ class Deliverable(Base, TimestampMixin):
     campaign_influencer_id: Mapped[int] = mapped_column(
         ForeignKey("campaign_influencers.id"), nullable=False
     )
-    deliverable_type: Mapped[DeliverableType] = mapped_column(Enum(DeliverableType), nullable=False)
+    deliverable_type: Mapped[DeliverableType] = mapped_column(
+        Enum(DeliverableType, name="deliverabletype"), nullable=False
+    )
     status: Mapped[DeliverableStatus] = mapped_column(
-        Enum(DeliverableStatus), default=DeliverableStatus.PENDING
+        Enum(DeliverableStatus, name="deliverablestatus"), default=DeliverableStatus.PENDING
     )
 
     # Requirements
@@ -182,8 +188,8 @@ class Deliverable(Base, TimestampMixin):
     publish_date: Mapped[Optional[date]] = mapped_column(Date)
 
     # Content
-    content_url: Mapped[Optional[str]] = mapped_column(String(500))  # submitted draft
-    live_url: Mapped[Optional[str]] = mapped_column(String(500))     # published post
+    content_url: Mapped[Optional[str]] = mapped_column(String(500))
+    live_url: Mapped[Optional[str]] = mapped_column(String(500))
     caption: Mapped[Optional[str]] = mapped_column(Text)
 
     # Review
@@ -193,7 +199,7 @@ class Deliverable(Base, TimestampMixin):
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     # Performance (pulled post-publish)
-    post_metrics: Mapped[Optional[dict]] = mapped_column(JSON)  # likes, comments, shares, views, etc.
+    post_metrics: Mapped[Optional[dict]] = mapped_column(JSON)
 
     # Relationships
     campaign_influencer: Mapped["CampaignInfluencer"] = relationship(back_populates="deliverables")
@@ -207,36 +213,25 @@ class CampaignMetrics(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     campaign_id: Mapped[int] = mapped_column(ForeignKey("campaigns.id"), unique=True, nullable=False)
 
-    # Reach & Awareness
     total_reach: Mapped[Optional[int]] = mapped_column(Integer)
     total_impressions: Mapped[Optional[int]] = mapped_column(Integer)
     unique_viewers: Mapped[Optional[int]] = mapped_column(Integer)
-
-    # Engagement
     total_likes: Mapped[Optional[int]] = mapped_column(Integer)
     total_comments: Mapped[Optional[int]] = mapped_column(Integer)
     total_shares: Mapped[Optional[int]] = mapped_column(Integer)
     total_saves: Mapped[Optional[int]] = mapped_column(Integer)
     total_views: Mapped[Optional[int]] = mapped_column(Integer)
     avg_engagement_rate: Mapped[Optional[float]] = mapped_column(Numeric(6, 4))
-
-    # Conversion
     total_clicks: Mapped[Optional[int]] = mapped_column(Integer)
     total_conversions: Mapped[Optional[int]] = mapped_column(Integer)
     total_revenue_attributed: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2))
-
-    # Financial
     total_spend: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2))
     cpm: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2))
-    cpe: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2))   # cost per engagement
-    cpc: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2))   # cost per click
-    roas: Mapped[Optional[float]] = mapped_column(Numeric(8, 2))    # return on ad spend
-
-    # Influencer breakdown
+    cpe: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2))
+    cpc: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 2))
+    roas: Mapped[Optional[float]] = mapped_column(Numeric(8, 2))
     influencer_count: Mapped[Optional[int]] = mapped_column(Integer)
     deliverable_count: Mapped[Optional[int]] = mapped_column(Integer)
-
     last_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
-    # Relationship
     campaign: Mapped["Campaign"] = relationship(back_populates="metrics")

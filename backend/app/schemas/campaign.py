@@ -4,7 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel
 from app.models.campaign import (
     CampaignStatus, CampaignType, DeliverableType, DeliverableStatus,
-    InfluencerStatus as CampaignInfluencerStatus,
+    CampaignInfluencerStatus,
 )
 
 

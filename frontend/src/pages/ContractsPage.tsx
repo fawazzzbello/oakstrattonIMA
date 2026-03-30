@@ -1,9 +1,10 @@
+import type { ElementType } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { FileText, CheckCircle, Clock, XCircle } from 'lucide-react'
 import api from '@/utils/api'
 import { format } from 'date-fns'
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: ElementType }> = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-600', icon: FileText },
   sent: { label: 'Sent', color: 'bg-blue-100 text-blue-700', icon: Clock },
   signed_influencer: { label: 'Pending Agency', color: 'bg-yellow-100 text-yellow-700', icon: Clock },

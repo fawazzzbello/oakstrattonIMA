@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from app.core.deps import get_db, require_manager, require_admin
+from app.core.deps import get_db, require_manager
 from app.core.exceptions import NotFoundError, PaymentError
 from app.models.payment import Invoice, Payout, InvoiceStatus, PayoutStatus
 from app.schemas.common import PaginatedResponse

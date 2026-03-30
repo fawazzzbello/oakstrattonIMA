@@ -8,7 +8,7 @@ from app.models.user import User, UserRole
 from app.models.contract import Contract, ContractTemplate, ContractStatus
 from app.schemas.common import PaginatedResponse
 from pydantic import BaseModel
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Optional as Opt
 
@@ -150,7 +150,7 @@ async def sign_contract(
     if not contract:
         raise NotFoundError("Contract", contract_id)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     if current_user.role == UserRole.INFLUENCER:
         contract.influencer_signed_at = now

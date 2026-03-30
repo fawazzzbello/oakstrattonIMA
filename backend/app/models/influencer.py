@@ -1,6 +1,6 @@
 import enum
 from typing import Optional, List
-from sqlalchemy import String, Integer, Numeric, Boolean, Enum, Text, ForeignKey, JSON, ARRAY
+from sqlalchemy import String, Integer, Numeric, Boolean, Enum, Text, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin
 
@@ -36,7 +36,7 @@ class Influencer(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
     status: Mapped[InfluencerStatus] = mapped_column(
-        Enum(InfluencerStatus), default=InfluencerStatus.PENDING
+        Enum(InfluencerStatus, name="influencerstatus"), default=InfluencerStatus.PENDING
     )
 
     # Profile

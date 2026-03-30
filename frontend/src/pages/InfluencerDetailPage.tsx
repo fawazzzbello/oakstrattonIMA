@@ -1,10 +1,11 @@
+import type { ElementType } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Instagram, Youtube, Globe, MapPin, Star } from 'lucide-react'
 import api from '@/utils/api'
 import type { Influencer } from '@/types'
 
-const PLATFORM_ICONS: Record<string, React.ElementType> = {
+const PLATFORM_ICONS: Record<string, ElementType> = {
   instagram: Instagram,
   youtube: Youtube,
 }

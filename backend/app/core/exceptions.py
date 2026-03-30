@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import HTTPException, status
 
 
@@ -36,7 +37,3 @@ class ValidationError(HTTPException):
 class PaymentError(HTTPException):
     def __init__(self, detail: str):
         super().__init__(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=detail)
-
-
-# Required for NotFoundError Any type annotation
-from typing import Any  # noqa: E402
