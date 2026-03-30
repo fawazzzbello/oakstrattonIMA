@@ -1,3 +1,6 @@
+# OakstrattonIMA Backend Service
+# For frontend and worker services, create separate Railway services
+# in the dashboard and configure their dockerfilePath or rootDirectory.
 # ============================================================
 # Railway Project Configuration for OakstrattonIMA
 #
