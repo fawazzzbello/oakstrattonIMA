@@ -105,5 +105,91 @@ def upgrade() -> None:
         END $$;
     """)
 
-    # Rest of the migration remains the same...
-    # [All the sa.Enum and op.create_table calls remain unchanged]
+    # sa.Enum objects are still needed as column type references in create_table calls below.
+    userrole = sa.Enum("admin", "manager", "client", "influencer", name="userrole", create_type=False)
+    influencerstatus = sa.Enum("pending", "active", "inactive", "suspended", name="influencerstatus", create_type=False)
+    socialplatform = sa.Enum(
+        "instagram", "tiktok", "youtube", "twitter", "facebook",
+        "pinterest", "linkedin", "snapchat", "twitch", name="socialplatform",
+        "pinterest", "linkedin", "snapchat", "twitch", name="socialplatform", create_type=False,
+    )
+    clientstatus = sa.Enum("lead", "active", "paused", "churned", name="clientstatus")
+    clientstatus = sa.Enum("lead", "active", "paused", "churned", name="clientstatus", create_type=False)
+    campaignstatus = sa.Enum(
+        "draft", "planning", "active", "paused", "completed", "cancelled", name="campaignstatus"
+        "draft", "planning", "active", "paused", "completed", "cancelled", name="campaignstatus", create_type=False,
+    )
+    campaigntype = sa.Enum(
+        "brand_awareness", "product_launch", "event_promotion", "lead_generation",
+        "app_install", "sales", "content_creation", "affiliate", name="campaigntype",
+        "app_install", "sales", "content_creation", "affiliate", name="campaigntype", create_type=False,
+    )
+    campaigninfluencerstatus = sa.Enum(
+        "invited", "negotiating", "contracted", "content_due", "content_submitted",
+        "content_approved", "published", "completed", "declined", "dropped",
+        name="campaigninfluencerstatus",
+        name="campaigninfluencerstatus", create_type=False,
+    )
+    deliverabletype = sa.Enum(
+        "instagram_post", "instagram_story", "instagram_reel", "tiktok_video",
+        "youtube_video", "youtube_short", "twitter_post", "facebook_post",
+        "blog_post", "podcast_mention", name="deliverabletype",
+        "blog_post", "podcast_mention", name="deliverabletype", create_type=False,
+    )
+    deliverablestatus = sa.Enum(
+        "pending", "in_progress", "submitted", "revision_requested",
+        "approved", "published", "rejected", name="deliverablestatus",
+        "approved", "published", "rejected", name="deliverablestatus", create_type=False,
+    )
+    contractstatus = sa.Enum(
+        "draft", "sent", "viewed", "signed_influencer", "signed_agency",
+        "fully_executed", "voided", "expired", name="contractstatus",
+        "fully_executed", "voided", "expired", name="contractstatus", create_type=False,
+    )
+    invoicestatus = sa.Enum(
+        "draft", "sent", "viewed", "partial", "paid", "overdue", "void", name="invoicestatus"
+        "draft", "sent", "viewed", "partial", "paid", "overdue", "void", name="invoicestatus", create_type=False,
+    )
+    payoutstatus = sa.Enum(
+        "pending", "processing", "completed", "failed", "cancelled", name="payoutstatus"
+        "pending", "processing", "completed", "failed", "cancelled", name="payoutstatus", create_type=False,
+    )
+    transactiontype = sa.Enum(
+        "client_payment", "influencer_payout", "agency_fee", "refund", "adjustment",
+        name="transactiontype",
+        name="transactiontype", create_type=False,
+    )
+    notificationtype = sa.Enum(
+        "campaign_invite", "contract_sent", "contract_signed", "deliverable_due",
+        "deliverable_submitted", "deliverable_approved", "deliverable_revision",
+        "payment_sent", "payment_received", "invoice_overdue", "campaign_started",
+        "campaign_completed", "metrics_updated", "system", name="notificationtype",
+        "campaign_completed", "metrics_updated", "system", name="notificationtype", create_type=False,
+    )
+
+    # Create all enum types
+    for e in [
+        userrole, influencerstatus, socialplatform, clientstatus, campaignstatus,
+        campaigntype, campaigninfluencerstatus, deliverabletype, deliverablestatus,
+        contractstatus, invoicestatus, payoutstatus, transactiontype, notificationtype,
+    ]:
+        e.create(op.get_bind(), checkfirst=True)
+
+    # --- users ---
+    op.create_table(
+        "users",
+@@ -478,10 +532,13 @@
+    op.drop_table("clients")
+    op.drop_table("users")
+
+    # Use raw SQL DROP TYPE IF EXISTS to safely handle cases where enum types
+    # may have already been removed. sa.Enum.drop(checkfirst=True) does not
+    # work reliably with the asyncpg driver.
+    for name in [
+        "notificationtype", "transactiontype", "payoutstatus", "invoicestatus",
+        "contractstatus", "deliverablestatus", "deliverabletype", "campaigninfluencerstatus",
+        "campaigntype", "campaignstatus", "clientstatus", "socialplatform",
+        "influencerstatus", "userrole",
+    ]:
+        sa.Enum(name=name).drop(op.get_bind(), checkfirst=True)
+        op.execute(f"DROP TYPE IF EXISTS {name}")
