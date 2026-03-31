@@ -240,3 +240,126 @@ export interface AgencyOverview {
   overdue_invoices: number
   avg_campaign_roi?: number
 }
+
+// --- AI Types ---
+export interface AIMatchResult {
+  influencer_id: number
+  name: string
+  match_score: number
+  reasoning: string
+  strengths: string[]
+  concerns: string[]
+}
+
+export interface AIMatchResponse {
+  matches: AIMatchResult[]
+  model_used: string
+}
+
+export interface AIBriefRequest {
+  product_name: string
+  product_description: string
+  target_audience: string
+  budget_range: string
+  campaign_type: string
+  platforms: string[]
+  duration_weeks: number
+}
+
+export interface AIBriefResponse {
+  brief_markdown: string
+  suggested_influencer_count: number
+  suggested_budget_split: Record<string, number>
+  model_used: string
+}
+
+export interface AIContentAnalysis {
+  brand_safety_score: number
+  quality_score: number
+  engagement_prediction: number
+  issues: string[]
+  suggestions: string[]
+}
+
+export interface AIInsightReport {
+  id: number
+  report_type: string
+  period_start: string
+  period_end: string
+  report_markdown: string
+  key_metrics: Record<string, any>
+  recommendations: any[]
+  status: string
+  created_at: string
+}
+
+export interface AIChatSession {
+  id: number
+  session_name: string
+  context_type: string | null
+  context_id: number | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface AIChatMessage {
+  id: number
+  session_id: number
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}
+
+// --- Admin Types ---
+export interface PlatformSettings {
+  id: number
+  agency_name: string
+  agency_tagline: string | null
+  agency_logo_url: string | null
+  primary_color: string
+  accent_color: string
+  bg_base_color: string
+  surface_color: string
+  font_heading: string
+  font_body: string
+  support_email: string | null
+  terms_url: string | null
+  privacy_url: string | null
+  custom_css: string | null
+  features_config: Record<string, boolean> | null
+  max_ai_requests_per_day: number
+  ai_model_override: string | null
+}
+
+export interface FeatureFlag {
+  id: number
+  flag_key: string
+  flag_name: string
+  description: string | null
+  is_enabled: boolean
+  enabled_for_roles: string[] | null
+  created_at: string
+}
+
+export interface AuditLogEntry {
+  id: number
+  user_email: string
+  action: string
+  resource_type: string | null
+  resource_id: string | null
+  ip_address: string | null
+  extra_data: Record<string, any> | null
+  created_at: string
+}
+
+export interface AdminStats {
+  total_users: number
+  total_campaigns: number
+  total_influencers: number
+  total_clients: number
+  active_campaigns: number
+  total_revenue: number
+  pending_invoices: number
+  users_by_role: Record<string, number>
+  campaigns_by_status: Record<string, number>
+}

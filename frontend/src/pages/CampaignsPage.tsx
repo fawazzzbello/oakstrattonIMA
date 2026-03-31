@@ -7,12 +7,12 @@ import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  planning: 'bg-blue-100 text-blue-700',
-  active: 'bg-green-100 text-green-700',
-  paused: 'bg-yellow-100 text-yellow-700',
-  completed: 'bg-purple-100 text-purple-700',
-  cancelled: 'bg-red-100 text-red-700',
+  draft: 'bg-slate-400/10 text-slate-400',
+  planning: 'bg-cyan-400/10 text-cyan-400',
+  active: 'bg-emerald-400/10 text-emerald-400',
+  paused: 'bg-amber-400/10 text-amber-400',
+  completed: 'bg-violet-400/10 text-violet-400',
+  cancelled: 'bg-rose-400/10 text-rose-400',
 }
 
 function CampaignCard({ campaign }: { campaign: Campaign }) {

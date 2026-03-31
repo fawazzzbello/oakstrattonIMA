@@ -6,10 +6,10 @@ import type { Influencer, PaginatedResponse } from '@/types'
 import { Link } from 'react-router-dom'
 
 const STATUS_COLORS = {
-  active: 'bg-green-100 text-green-700',
-  pending: 'bg-yellow-100 text-yellow-700',
-  inactive: 'bg-gray-100 text-gray-600',
-  suspended: 'bg-red-100 text-red-700',
+  active: 'bg-emerald-400/10 text-emerald-400',
+  pending: 'bg-amber-400/10 text-amber-400',
+  inactive: 'bg-slate-400/10 text-slate-400',
+  suspended: 'bg-rose-400/10 text-rose-400',
 }
 
 function InfluencerCard({ influencer }: { influencer: Influencer }) {
