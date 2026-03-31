@@ -5,13 +5,13 @@ import api from '@/utils/api'
 import { format } from 'date-fns'
 
 const INVOICE_STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  draft: { color: 'bg-gray-100 text-gray-600', label: 'Draft' },
-  sent: { color: 'bg-blue-100 text-blue-700', label: 'Sent' },
-  viewed: { color: 'bg-indigo-100 text-indigo-700', label: 'Viewed' },
-  partial: { color: 'bg-yellow-100 text-yellow-700', label: 'Partial' },
-  paid: { color: 'bg-green-100 text-green-700', label: 'Paid' },
-  overdue: { color: 'bg-red-100 text-red-700', label: 'Overdue' },
-  void: { color: 'bg-gray-100 text-gray-500', label: 'Void' },
+  draft: { color: 'bg-slate-400/10 text-slate-400', label: 'Draft' },
+  sent: { color: 'bg-cyan-400/10 text-cyan-400', label: 'Sent' },
+  viewed: { color: 'bg-violet-400/10 text-violet-400', label: 'Viewed' },
+  partial: { color: 'bg-amber-400/10 text-amber-400', label: 'Partial' },
+  paid: { color: 'bg-emerald-400/10 text-emerald-400', label: 'Paid' },
+  overdue: { color: 'bg-rose-400/10 text-rose-400', label: 'Overdue' },
+  void: { color: 'bg-slate-400/10 text-slate-500', label: 'Void' },
 }
 
 export default function PaymentsPage() {

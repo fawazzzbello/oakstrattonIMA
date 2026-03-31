@@ -11,6 +11,8 @@ import ClientsPage from '@/pages/ClientsPage'
 import ContractsPage from '@/pages/ContractsPage'
 import PaymentsPage from '@/pages/PaymentsPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
+import AIInsightsPage from '@/pages/AIInsightsPage'
+import AdminPage from '@/pages/AdminPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -23,7 +25,6 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-
       <Route
         path="/"
         element={
@@ -42,8 +43,9 @@ export default function App() {
         <Route path="contracts" element={<ContractsPage />} />
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="ai-insights" element={<AIInsightsPage />} />
+        <Route path="admin/*" element={<AdminPage />} />
       </Route>
-
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
