@@ -10,6 +10,8 @@ from app.models.campaign import (
 from app.models.contract import Contract, ContractTemplate, ContractStatus
 from app.models.payment import Invoice, Payout, Transaction, InvoiceStatus, PayoutStatus, TransactionType
 from app.models.notification import Notification, NotificationType
+from app.models.platform_settings import PlatformSettings, FeatureFlag, AuditLog
+from app.models.ai_result import AIAnalysis, AIInsightReport, AIChatSession, AIChatMessage
 
 __all__ = [
     "User", "UserRole",
@@ -22,4 +24,6 @@ __all__ = [
     "Contract", "ContractTemplate", "ContractStatus",
     "Invoice", "Payout", "Transaction", "InvoiceStatus", "PayoutStatus", "TransactionType",
     "Notification", "NotificationType",
+    "PlatformSettings", "FeatureFlag", "AuditLog",
+    "AIAnalysis", "AIInsightReport", "AIChatSession", "AIChatMessage",
 ]
