@@ -20,6 +20,11 @@ target_metadata = Base.metadata
 def get_url():
     import os
     url = os.environ.get("DATABASE_URL", "")
+    if not url:
+        raise RuntimeError(
+            "DATABASE_URL environment variable is not set. "
+            "Ensure the Railway PostgreSQL plugin is linked to this service."
+        )
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
     elif url.startswith("postgresql://") and "+asyncpg" not in url:
