@@ -1,5 +1,6 @@
 from functools import lru_cache
 from typing import List, Optional
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,21 +14,21 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "production"
 
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str = "change-me-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     ALGORITHM: str = "HS256"
 
     # Database
-    DATABASE_URL: str
+    DATABASE_URL: str = ""
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    # CORS — accepts JSON array, comma-separated string, or empty
+    CORS_ORIGINS: str = ""
 
     # Email (SendGrid)
     SENDGRID_API_KEY: Optional[str] = None
@@ -70,6 +71,20 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = 50
     MAX_PAGE_SIZE: int = 200
 
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Parse CORS_ORIGINS from JSON array or comma-separated string."""
+        import json
+        val = self.CORS_ORIGINS.strip()
+        if not val:
+            return ["*"]
+        if val.startswith("["):
+            try:
+                return json.loads(val)
+            except Exception:
+                pass
+        return [o.strip() for o in val.split(",") if o.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -77,3 +92,4 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
