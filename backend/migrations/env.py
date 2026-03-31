@@ -19,6 +19,16 @@ target_metadata = Base.metadata
 
 def get_url():
     import os
+    user = os.environ.get("PGUSER")
+    password = os.environ.get("PGPASSWORD")
+    host = os.environ.get("PGHOST")
+    port = os.environ.get("PGPORT")
+    database = os.environ.get("PGDATABASE")
+
+    if all([user, password, host, port, database]):
+        return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"
+
+    # Fall back to DATABASE_URL for backward compatibility
     url = os.environ.get("DATABASE_URL", "")
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
