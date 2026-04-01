@@ -1,20 +1,8 @@
-# OakstrattonIMA — Railway Configuration
-#
-# This file applies ONLY to the backend service.
-# dockerfilePath is intentionally NOT set here so each Railway service
-# can configure its own Dockerfile path in the dashboard without being
-# overridden.
-#
-# Dashboard settings per service:
-#   Backend:  Dockerfile Path = backend/Dockerfile  (Root Directory: blank)
-#   Worker:   Dockerfile Path = backend/Dockerfile.celery  (Root Directory: blank)
-#   Frontend: Dockerfile Path = frontend/Dockerfile  (Root Directory: blank)
-
-[build]
-builder = "DOCKERFILE"
+# Railway reads this file for ALL services in the project.
+# Keep this file minimal — only settings safe for every service.
+# Service-specific Dockerfile paths are set in the Railway dashboard.
 
 [deploy]
-startCommand = "./start.sh"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
