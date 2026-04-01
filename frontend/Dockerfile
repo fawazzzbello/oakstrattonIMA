@@ -4,6 +4,12 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# VITE_API_URL is baked into the JS bundle at build time by Vite.
+# Set it as a Railway Variable on the frontend service:
+#   VITE_API_URL=https://oakstrattonima-backend.up.railway.app/api/v1
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 COPY frontend/package*.json ./
 RUN npm ci --silent
 
@@ -18,12 +24,7 @@ COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
 COPY frontend/start.sh /start.sh
 RUN chmod +x /start.sh
 
-EXPOSE 80
-
 HEALTHCHECK --interval=30s --timeout=5s \
-    CMD wget -qO- http://localhost:80/health || exit 1
+    CMD wget -qO- http://localhost:${PORT:-80}/health || exit 1
 
-# start.sh substitutes ${BACKEND_URL} in the nginx template using sed,
-# then starts nginx. Set BACKEND_URL on the Railway frontend service to
-# your backend URL, e.g. https://oakstrattonima-backend.up.railway.app
 CMD ["/start.sh"]
