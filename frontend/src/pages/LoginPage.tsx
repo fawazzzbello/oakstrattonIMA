@@ -100,7 +100,7 @@ export default function LoginPage() {
 
               {login.error && (
                 <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg border border-destructive/20">
-                  Invalid email or password. Please try again.
+                  {(login.error as any)?.response?.data?.detail || 'Invalid email or password. Please try again.'}
                 </div>
               )}
 
@@ -180,7 +180,7 @@ export default function LoginPage() {
 
               {register.error && (
                 <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg border border-destructive/20">
-                  Registration failed. Email may already be in use.
+                  {(register.error as any)?.response?.data?.detail || (register.error as any)?.message || 'Registration failed. Please try again.'}
                 </div>
               )}
 
