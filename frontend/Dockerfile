@@ -1,13 +1,13 @@
 # Stage 1: Build
-# Build context: frontend/ directory (set Root Directory = "frontend" in Railway)
+# Build context: repo root. Root Directory must be blank in Railway.
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm ci --silent
 
-COPY . .
+COPY frontend/ .
 RUN npm run build
 
 # Stage 2: Serve with nginx
@@ -18,7 +18,7 @@ RUN apk add --no-cache bash
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Store nginx template; envsubst will render it at startup
-COPY nginx.conf /etc/nginx/templates/default.conf.template
+COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 80
 
