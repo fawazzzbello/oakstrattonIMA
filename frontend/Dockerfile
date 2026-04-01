@@ -13,19 +13,17 @@ RUN npm run build
 # Stage 2: Serve with nginx
 FROM nginx:alpine
 
-RUN apk add --no-cache bash
-
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Store nginx template; envsubst will render it at startup
 COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
+COPY frontend/start.sh /start.sh
+RUN chmod +x /start.sh
 
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s \
     CMD wget -qO- http://localhost:80/health || exit 1
 
-# envsubst replaces ${BACKEND_URL} in nginx template before nginx starts.
-# Set BACKEND_URL on the Railway frontend service to your backend URL,
-# e.g. https://oakstrattonima-backend.up.railway.app
-CMD ["/bin/sh", "-c", "BACKEND_URL=${BACKEND_URL:-http://localhost:8000} envsubst '${BACKEND_URL}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# start.sh substitutes ${BACKEND_URL} in the nginx template using sed,
+# then starts nginx. Set BACKEND_URL on the Railway frontend service to
+# your backend URL, e.g. https://oakstrattonima-backend.up.railway.app
+CMD ["/start.sh"]
