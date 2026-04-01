@@ -2,14 +2,10 @@
 set -e
 
 PORT="${PORT:-80}"
-BACKEND_URL="${BACKEND_URL:-http://localhost:8000}"
 
-echo "Starting nginx on port ${PORT} with BACKEND_URL=${BACKEND_URL}"
+echo "Starting nginx on port ${PORT}"
 
-# Substitute ${PORT} and ${BACKEND_URL} in the nginx template
-sed \
-    -e "s|\${PORT}|${PORT}|g" \
-    -e "s|\${BACKEND_URL}|${BACKEND_URL}|g" \
+sed "s|\${PORT}|${PORT}|g" \
     /etc/nginx/templates/default.conf.template \
     > /etc/nginx/conf.d/default.conf
 
