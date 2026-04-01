@@ -81,13 +81,16 @@ class Settings(BaseSettings):
         import json
         val = self.CORS_ORIGINS.strip()
         if not val:
+            # Fall back to FRONTEND_URL so credentials work (wildcard + credentials is invalid)
+            if self.FRONTEND_URL and self.FRONTEND_URL != "http://localhost:5173":
+                return [self.FRONTEND_URL.rstrip("/")]
             return ["*"]
         if val.startswith("["):
             try:
                 return json.loads(val)
             except Exception:
                 pass
-        return [o.strip() for o in val.split(",") if o.strip()]
+        return [o.strip().rstrip("/") for o in val.split(",") if o.strip()]
 
 
 @lru_cache

@@ -16,6 +16,13 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Clear all auth state (localStorage + zustand persist)
+function clearAuthState() {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('oakstratton-auth')
+}
+
 // Auto-refresh on 401
 api.interceptors.response.use(
   (response) => response,
@@ -36,11 +43,11 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${data.access_token}`
           return api(originalRequest)
         } catch {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
+          clearAuthState()
           window.location.href = '/login'
         }
       } else {
+        clearAuthState()
         window.location.href = '/login'
       }
     }

@@ -10,18 +10,26 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: async (data: { email: string; password: string; full_name: string }) => {
-      await api.post('/auth/register', data)
-      const { data: tokens } = await api.post<TokenResponse>('/auth/login', {
-        email: data.email,
-        password: data.password,
-      })
-      return tokens
+      // Register now returns tokens directly — single call, no race condition
+      const { data: tokens } = await api.post<TokenResponse>('/auth/register', data)
+      return { tokens, email: data.email }
     },
-    onSuccess: async (tokens) => {
-      localStorage.setItem('access_token', tokens.access_token)
-      const { data: user } = await api.get<User>('/auth/me')
-      setAuth(user, tokens.access_token, tokens.refresh_token)
-      navigate('/dashboard')
+    onSuccess: async ({ tokens }) => {
+      try {
+        localStorage.setItem('access_token', tokens.access_token)
+        localStorage.setItem('refresh_token', tokens.refresh_token)
+        const { data: user } = await api.get<User>('/auth/me')
+        setAuth(user, tokens.access_token, tokens.refresh_token)
+        navigate('/dashboard')
+      } catch {
+        // Token is valid but /me failed — still log in with minimal user info
+        setAuth(
+          { id: 0, email: '', full_name: '', role: 'client' } as User,
+          tokens.access_token,
+          tokens.refresh_token,
+        )
+        navigate('/dashboard')
+      }
     },
   })
 }
@@ -36,10 +44,21 @@ export function useLogin() {
       return data
     },
     onSuccess: async (tokens) => {
-      localStorage.setItem('access_token', tokens.access_token)
-      const { data: user } = await api.get<User>('/auth/me')
-      setAuth(user, tokens.access_token, tokens.refresh_token)
-      navigate('/dashboard')
+      try {
+        localStorage.setItem('access_token', tokens.access_token)
+        localStorage.setItem('refresh_token', tokens.refresh_token)
+        const { data: user } = await api.get<User>('/auth/me')
+        setAuth(user, tokens.access_token, tokens.refresh_token)
+        navigate('/dashboard')
+      } catch {
+        // Token is valid but /me failed — still navigate
+        setAuth(
+          { id: 0, email: '', full_name: '', role: 'client' } as User,
+          tokens.access_token,
+          tokens.refresh_token,
+        )
+        navigate('/dashboard')
+      }
     },
   })
 }
