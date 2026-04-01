@@ -71,6 +71,10 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = 50
     MAX_PAGE_SIZE: int = 200
 
+    # Admin seeding — set this to protect the /auth/seed-admin endpoint
+    # Leave blank to disable the endpoint entirely after first use
+    SEED_ADMIN_SECRET: Optional[str] = None
+
     @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS_ORIGINS from JSON array or comma-separated string."""

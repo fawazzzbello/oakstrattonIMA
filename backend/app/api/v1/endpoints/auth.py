@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from typing import Optional
 from app.core.deps import get_db, get_current_active_user
+from app.core.config import settings
 from app.core.security import (
     verify_password, get_password_hash, create_access_token,
     create_refresh_token, verify_token,
@@ -73,3 +75,48 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_active_user)):
     return current_user
+
+
+@router.post("/seed-admin", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def seed_admin(
+    payload: RegisterRequest,
+    x_seed_secret: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Create the first admin user. Only works when:
+    1. SEED_ADMIN_SECRET is set in environment variables.
+    2. The X-Seed-Secret header matches that value.
+    3. No users exist yet in the database.
+
+    Disable this endpoint after first use by clearing SEED_ADMIN_SECRET.
+    """
+    if not settings.SEED_ADMIN_SECRET:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if x_seed_secret != settings.SEED_ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid seed secret")
+
+    count = await db.execute(select(func.count()).select_from(User))
+    if count.scalar() > 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Database already has users. Use /auth/register then promote via SQL.",
+        )
+
+    user = User(
+        email=payload.email,
+        hashed_password=get_password_hash(payload.password),
+        full_name=payload.full_name,
+        role=UserRole.ADMIN,
+        is_active=True,
+        is_verified=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return TokenResponse(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
