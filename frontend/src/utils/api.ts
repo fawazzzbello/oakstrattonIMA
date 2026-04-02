@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
+// Nginx proxies /api/ to the backend — no CORS needed, no build-time env var required
+const BASE_URL = '/api/v1'
 
 export const api = axios.create({
   baseURL: BASE_URL,
