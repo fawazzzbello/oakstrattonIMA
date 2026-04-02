@@ -32,7 +32,7 @@ class User(Base, TimestampMixin):
         back_populates="user", uselist=False
     )
     client_profile: Mapped[Optional["Client"]] = relationship(
-        back_populates="user", uselist=False
+        back_populates="user", uselist=False, foreign_keys="[Client.user_id]"
     )
     notifications: Mapped[List["Notification"]] = relationship(back_populates="user")
 
