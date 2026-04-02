@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Shield, Settings, Users, Flag, ScrollText, BarChart3,
-  Loader2, CheckCircle2, Trash2, Plus,
+  Loader2, CheckCircle2, Trash2, Plus, Edit3,
   Lock, Globe, Palette, ToggleLeft, ToggleRight,
   Activity, Megaphone, UserCheck, DollarSign, Image, Layout, Link2,
 } from 'lucide-react'
@@ -371,12 +371,14 @@ function UsersTab() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [showAdd, setShowAdd] = useState(false)
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [editForm, setEditForm] = useState<{ full_name: string; email: string; role: string; is_active: boolean; is_verified: boolean }>({ full_name: '', email: '', role: 'manager', is_active: true, is_verified: false })
   const [newUser, setNewUser] = useState({ full_name: '', email: '', password: '', role: 'manager' })
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ['admin-users', search, roleFilter],
+    queryKey: ['admin-users', roleFilter],
     queryFn: async () => {
-      const params = new URLSearchParams({ limit: '50' })
+      const params = new URLSearchParams({ limit: '100' })
       if (roleFilter) params.set('role', roleFilter)
       const { data } = await api.get(`/admin/users?${params}`)
       return data as { items: User[]; total: number }
@@ -388,10 +390,23 @@ function UsersTab() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowAdd(false); setNewUser({ full_name: '', email: '', password: '', role: 'manager' }) },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: typeof editForm }) => {
+      const { data } = await api.patch(`/admin/users/${id}`, payload)
+      return data
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setEditUser(null) },
+  })
+
   const deactivateMutation = useMutation({
     mutationFn: async (userId: number) => { const { data } = await api.delete(`/admin/users/${userId}`); return data },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
   })
+
+  const openEdit = (user: User) => {
+    setEditUser(user)
+    setEditForm({ full_name: user.full_name, email: user.email, role: user.role, is_active: user.is_active, is_verified: user.is_verified })
+  }
 
   const ROLE_COLORS: Record<string, string> = {
     admin: 'bg-rose-400/10 text-rose-400',
@@ -410,7 +425,7 @@ function UsersTab() {
           <option value="">All Roles</option>
           {['admin', 'manager', 'client', 'influencer'].map((r) => <option key={r} value={r} className="capitalize">{r}</option>)}
         </select>
-        <button className="btn-primary flex items-center gap-2" onClick={() => setShowAdd(!showAdd)}><Plus className="h-4 w-4" />Add User</button>
+        <button className="btn-primary flex items-center gap-2" onClick={() => { setShowAdd(!showAdd); setEditUser(null) }}><Plus className="h-4 w-4" />Add User</button>
       </div>
 
       {showAdd && (
@@ -435,24 +450,78 @@ function UsersTab() {
         </div>
       )}
 
+      {editUser && (
+        <div className="glass-card p-5 space-y-4 border border-violet-400/20">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Edit3 className="h-4 w-4 text-violet-400" />Edit User — {editUser.email}</h3>
+            <button className="btn-ghost text-xs" onClick={() => setEditUser(null)}>✕ Close</button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label className="block text-xs text-muted-foreground mb-1">Full Name</label><input className="input-field w-full" value={editForm.full_name} onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))} /></div>
+            <div><label className="block text-xs text-muted-foreground mb-1">Email</label><input className="input-field w-full" type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} /></div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">Role</label>
+              <select className="input-field w-full" value={editForm.role} onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}>
+                {['admin', 'manager', 'client', 'influencer'].map((r) => <option key={r} value={r} className="capitalize">{r}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col gap-2 justify-center pt-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input type="checkbox" className="accent-primary w-4 h-4" checked={editForm.is_active} onChange={(e) => setEditForm((f) => ({ ...f, is_active: e.target.checked }))} />
+                <span className="text-muted-foreground text-xs">Account Active</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input type="checkbox" className="accent-primary w-4 h-4" checked={editForm.is_verified} onChange={(e) => setEditForm((f) => ({ ...f, is_verified: e.target.checked }))} />
+                <span className="text-muted-foreground text-xs">Email Verified</span>
+              </label>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button className="btn-primary flex items-center gap-2 disabled:opacity-50 text-sm" onClick={() => updateMutation.mutate({ id: editUser.id, payload: editForm })} disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}Save Changes
+            </button>
+            <button className="btn-ghost text-sm" onClick={() => setEditUser(null)}>Cancel</button>
+          </div>
+          {updateMutation.isSuccess && <p className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" />User updated successfully</p>}
+          {updateMutation.isError && <p className="text-xs text-rose-400">Failed to update user. Please try again.</p>}
+        </div>
+      )}
+
       <div className="glass-card overflow-hidden">
         <table className="w-full">
           <thead className="border-b border-border">
-            <tr><th className="table-header text-left p-4">Name</th><th className="table-header text-left p-4">Email</th><th className="table-header text-left p-4">Role</th><th className="table-header text-left p-4">Status</th><th className="table-header text-left p-4">Actions</th></tr>
+            <tr>
+              <th className="table-header text-left p-4">Name</th>
+              <th className="table-header text-left p-4">Email</th>
+              <th className="table-header text-left p-4">Role</th>
+              <th className="table-header text-left p-4">Status</th>
+              <th className="table-header text-left p-4">Actions</th>
+            </tr>
           </thead>
           <tbody>
             {isLoading ? Array.from({ length: 5 }).map((_, i) => (
               <tr key={i} className="table-row"><td colSpan={5} className="p-4"><div className="h-5 bg-muted/40 rounded animate-pulse" /></td></tr>
             )) : (filtered ?? []).map((user) => (
-              <tr key={user.id} className="table-row">
+              <tr key={user.id} className={`table-row ${editUser?.id === user.id ? 'bg-violet-400/5' : ''}`}>
                 <td className="p-4"><span className="font-medium text-sm">{user.full_name}</span></td>
                 <td className="p-4 text-sm text-muted-foreground">{user.email}</td>
-                <td className="p-4"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[user.role] ?? 'bg-muted text-muted-foreground'}`}>{user.role}</span></td>
-                <td className="p-4"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${user.is_active ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-400'}`}>{user.is_active ? 'Active' : 'Inactive'}</span></td>
                 <td className="p-4">
-                  <button onClick={() => deactivateMutation.mutate(user.id)} className="p-1.5 rounded hover:bg-rose-400/10 text-muted-foreground hover:text-rose-400 transition-colors" title="Deactivate">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[user.role] ?? 'bg-muted text-muted-foreground'}`}>{user.role}</span>
+                </td>
+                <td className="p-4">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${user.is_active ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-400'}`}>
+                    {user.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="p-4">
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => openEdit(user)} className="p-1.5 rounded hover:bg-violet-400/10 text-muted-foreground hover:text-violet-400 transition-colors" title="Edit user">
+                      <Edit3 className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => deactivateMutation.mutate(user.id)} className="p-1.5 rounded hover:bg-rose-400/10 text-muted-foreground hover:text-rose-400 transition-colors" title="Deactivate">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -469,10 +538,13 @@ function UsersTab() {
 // ── Feature Flags Tab ────────────────────────────────────────────────────
 function FeatureFlagsTab() {
   const qc = useQueryClient()
+  const [showCreate, setShowCreate] = useState(false)
+  const [newFlag, setNewFlag] = useState({ flag_key: '', flag_name: '', description: '', is_enabled: true })
 
   const { data: flags, isLoading } = useQuery({
     queryKey: ['admin-feature-flags'],
-    queryFn: async () => { const { data } = await api.get('/admin/feature-flags'); return data as { items: FeatureFlag[]; total: number } },
+    // backend returns plain array, not paginated
+    queryFn: async () => { const { data } = await api.get('/admin/feature-flags'); return data as FeatureFlag[] },
   })
 
   const toggleMutation = useMutation({
@@ -483,35 +555,95 @@ function FeatureFlagsTab() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-feature-flags'] }),
   })
 
+  const createMutation = useMutation({
+    mutationFn: async () => { const { data } = await api.post('/admin/feature-flags', newFlag); return data },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-feature-flags'] })
+      setShowCreate(false)
+      setNewFlag({ flag_key: '', flag_name: '', description: '', is_enabled: true })
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => { await api.delete(`/admin/feature-flags/${id}`) },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-feature-flags'] }),
+  })
+
+  const rolesLabel = (roles: FeatureFlag['enabled_for_roles']) => {
+    if (!roles) return null
+    if (Array.isArray(roles)) return roles.join(', ')
+    return Object.entries(roles).filter(([, v]) => v).map(([k]) => k).join(', ')
+  }
+
   return (
-    <div className="space-y-3">
-      {isLoading && Array.from({ length: 5 }).map((_, i) => <div key={i} className="glass-card h-20 animate-pulse" />)}
-      {flags?.items.map((flag) => (
-        <div key={flag.id} className="glass-card-hover p-4 flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-medium text-sm">{flag.flag_name}</span>
-              <code className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{flag.flag_key}</code>
-            </div>
-            {flag.description && <p className="text-xs text-muted-foreground">{flag.description}</p>}
-            {flag.enabled_for_roles && (
-              <p className="text-xs text-muted-foreground mt-1">Roles: {flag.enabled_for_roles.join(', ')}</p>
-            )}
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <button className="btn-primary flex items-center gap-2 text-sm" onClick={() => setShowCreate(!showCreate)}>
+          <Plus className="h-4 w-4" />New Flag
+        </button>
+      </div>
+
+      {showCreate && (
+        <div className="glass-card p-5 space-y-4">
+          <h3 className="text-sm font-semibold">Create Feature Flag</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label className="block text-xs text-muted-foreground mb-1">Flag Key</label><input className="input-field w-full font-mono text-sm" placeholder="ai_matching_enabled" value={newFlag.flag_key} onChange={(e) => setNewFlag((f) => ({ ...f, flag_key: e.target.value }))} /></div>
+            <div><label className="block text-xs text-muted-foreground mb-1">Display Name</label><input className="input-field w-full text-sm" placeholder="AI Matching" value={newFlag.flag_name} onChange={(e) => setNewFlag((f) => ({ ...f, flag_name: e.target.value }))} /></div>
+            <div className="sm:col-span-2"><label className="block text-xs text-muted-foreground mb-1">Description</label><input className="input-field w-full text-sm" placeholder="Optional description..." value={newFlag.description} onChange={(e) => setNewFlag((f) => ({ ...f, description: e.target.value }))} /></div>
           </div>
-          <button
-            onClick={() => toggleMutation.mutate({ id: flag.id, is_enabled: !flag.is_enabled })}
-            className={`shrink-0 transition-colors ${flag.is_enabled ? 'text-emerald-400 hover:text-emerald-300' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            {flag.is_enabled ? <ToggleRight className="h-7 w-7" /> : <ToggleLeft className="h-7 w-7" />}
-          </button>
-        </div>
-      ))}
-      {!isLoading && (!flags?.items || flags.items.length === 0) && (
-        <div className="text-center py-8 text-muted-foreground">
-          <Flag className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No feature flags configured.</p>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input type="checkbox" className="accent-primary w-4 h-4" checked={newFlag.is_enabled} onChange={(e) => setNewFlag((f) => ({ ...f, is_enabled: e.target.checked }))} />
+              <span className="text-muted-foreground text-xs">Enabled by default</span>
+            </label>
+          </div>
+          <div className="flex gap-3">
+            <button className="btn-primary flex items-center gap-2 disabled:opacity-50 text-sm" onClick={() => createMutation.mutate()} disabled={!newFlag.flag_key || !newFlag.flag_name || createMutation.isPending}>
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}Create
+            </button>
+            <button className="btn-ghost text-sm" onClick={() => setShowCreate(false)}>Cancel</button>
+          </div>
         </div>
       )}
+
+      <div className="space-y-3">
+        {isLoading && Array.from({ length: 5 }).map((_, i) => <div key={i} className="glass-card h-20 animate-pulse" />)}
+        {(flags ?? []).map((flag) => (
+          <div key={flag.id} className="glass-card-hover p-4 flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                <span className="font-medium text-sm">{flag.flag_name}</span>
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{flag.flag_key}</code>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${flag.is_enabled ? 'bg-emerald-400/10 text-emerald-400' : 'bg-slate-400/10 text-slate-400'}`}>
+                  {flag.is_enabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              {flag.description && <p className="text-xs text-muted-foreground">{flag.description}</p>}
+              {flag.enabled_for_roles && rolesLabel(flag.enabled_for_roles) && (
+                <p className="text-xs text-muted-foreground/60 mt-0.5">Roles: {rolesLabel(flag.enabled_for_roles)}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => toggleMutation.mutate({ id: flag.id, is_enabled: !flag.is_enabled })}
+                className={`transition-colors ${flag.is_enabled ? 'text-emerald-400 hover:text-emerald-300' : 'text-muted-foreground hover:text-foreground'}`}
+                title={flag.is_enabled ? 'Disable' : 'Enable'}
+              >
+                {flag.is_enabled ? <ToggleRight className="h-7 w-7" /> : <ToggleLeft className="h-7 w-7" />}
+              </button>
+              <button onClick={() => deleteMutation.mutate(flag.id)} className="p-1.5 rounded hover:bg-rose-400/10 text-muted-foreground hover:text-rose-400 transition-colors" title="Delete flag">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ))}
+        {!isLoading && (flags ?? []).length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <Flag className="h-10 w-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">No feature flags configured. Create one above.</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
