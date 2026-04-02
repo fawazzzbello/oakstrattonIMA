@@ -1,6 +1,7 @@
 """Celery tasks for sending notifications and emails."""
 import asyncio
 from app.tasks.worker import celery_app
+from app.services.email import send_email as _send_email_svc
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -169,25 +170,5 @@ async def _send_deliverable_reminders():
 
 
 async def _send_email(to: str, subject: str, body: str):
-    """Send email via SendGrid."""
-    from app.core.config import settings
-
-    if not settings.SENDGRID_API_KEY:
-        print(f"[EMAIL] Would send to {to}: {subject}")
-        return
-
-    try:
-        import sendgrid
-        from sendgrid.helpers.mail import Mail, Email, To, Content
-
-        sg = sendgrid.SendGridAPIClient(api_key=settings.SENDGRID_API_KEY)
-        message = Mail(
-            from_email=Email(settings.EMAIL_FROM, settings.EMAIL_FROM_NAME),
-            to_emails=To(to),
-            subject=subject,
-            html_content=Content("text/html", body),
-        )
-        sg.client.mail.send.post(request_body=message.get())
-    except Exception as e:
-        print(f"[EMAIL ERROR] Failed to send to {to}: {e}")
-        raise
+    """Thin wrapper — delegates to shared email service."""
+    await _send_email_svc(to, subject, body)

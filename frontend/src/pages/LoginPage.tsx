@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useLogin, useRegister } from '@/hooks/useAuth'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Loader2 } from 'lucide-react'
 
@@ -103,6 +103,12 @@ export default function LoginPage() {
                   {(login.error as any)?.response?.data?.detail || 'Invalid email or password. Please try again.'}
                 </div>
               )}
+
+              <div className="flex justify-end">
+                <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
 
               <button
                 type="submit"

@@ -1,7 +1,7 @@
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Sparkles, Megaphone, Users, Building2, FileText,
-  CreditCard, BarChart3, Shield, LogOut, Bell, Search, Menu, X,
+  CreditCard, BarChart3, Shield, LogOut, Bell, Search, Menu, X, UserCircle,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '@/store/authStore'
@@ -129,9 +129,13 @@ export default function DashboardLayout() {
       </nav>
 
       {/* User section */}
-      <div className="px-4 py-4 border-t border-border/40">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm shrink-0">
+      <div className="px-4 py-4 border-t border-border/40 space-y-2">
+        <Link
+          to="/app/profile"
+          onClick={() => setMobileOpen(false)}
+          className="flex items-center gap-3 w-full rounded-lg px-2 py-1.5 hover:bg-muted/30 transition-colors group"
+        >
+          <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm shrink-0 group-hover:bg-primary/30 transition-colors">
             {user?.full_name?.[0]?.toUpperCase() ?? 'U'}
           </div>
           <div className="flex-1 min-w-0">
@@ -140,14 +144,15 @@ export default function DashboardLayout() {
               {user?.role}
             </span>
           </div>
-          <button
-            onClick={logout}
-            className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-destructive transition-colors duration-200"
-            title="Sign out"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
+          <UserCircle size={15} className="text-muted-foreground shrink-0" />
+        </Link>
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors duration-200"
+        >
+          <LogOut size={15} />
+          Sign out
+        </button>
       </div>
     </div>
   )
