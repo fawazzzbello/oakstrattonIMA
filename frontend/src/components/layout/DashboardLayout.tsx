@@ -24,50 +24,50 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'MAIN',
     items: [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/app/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     ],
   },
   {
     title: 'AI FEATURES',
     items: [
-      { to: '/ai-insights', icon: Sparkles, label: 'AI Insights' },
+      { to: '/app/ai-insights', icon: Sparkles, label: 'AI Insights' },
     ],
   },
   {
     title: 'MANAGEMENT',
     items: [
-      { to: '/campaigns', icon: Megaphone, label: 'Campaigns' },
-      { to: '/influencers', icon: Users, label: 'Influencers' },
-      { to: '/clients', icon: Building2, label: 'Clients' },
+      { to: '/app/campaigns', icon: Megaphone, label: 'Campaigns' },
+      { to: '/app/influencers', icon: Users, label: 'Influencers' },
+      { to: '/app/clients', icon: Building2, label: 'Clients' },
     ],
   },
   {
     title: 'OPERATIONS',
     items: [
-      { to: '/contracts', icon: FileText, label: 'Contracts' },
-      { to: '/payments', icon: CreditCard, label: 'Payments' },
-      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/app/contracts', icon: FileText, label: 'Contracts' },
+      { to: '/app/payments', icon: CreditCard, label: 'Payments' },
+      { to: '/app/analytics', icon: BarChart3, label: 'Analytics' },
     ],
   },
   {
     title: 'ADMIN',
     adminOnly: true,
     items: [
-      { to: '/admin', icon: Shield, label: 'Platform Admin' },
+      { to: '/app/admin', icon: Shield, label: 'Platform Admin' },
     ],
   },
 ]
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/ai-insights': 'AI Insights',
-  '/campaigns': 'Campaigns',
-  '/influencers': 'Influencers',
-  '/clients': 'Clients',
-  '/contracts': 'Contracts',
-  '/payments': 'Payments',
-  '/analytics': 'Analytics',
-  '/admin': 'Platform Admin',
+  '/app/dashboard': 'Dashboard',
+  '/app/ai-insights': 'AI Insights',
+  '/app/campaigns': 'Campaigns',
+  '/app/influencers': 'Influencers',
+  '/app/clients': 'Clients',
+  '/app/contracts': 'Contracts',
+  '/app/payments': 'Payments',
+  '/app/analytics': 'Analytics',
+  '/app/admin': 'Platform Admin',
 }
 
 export default function DashboardLayout() {
