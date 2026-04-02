@@ -114,10 +114,10 @@ export default function LandingPage() {
               Get Started Free
             </Link>
             <Link
-              to="/login"
+              to="/directory"
               className="btn-secondary text-base px-8 py-3 rounded-xl"
             >
-              Sign In
+              Browse Influencers
             </Link>
           </div>
         </div>
@@ -248,10 +248,10 @@ export default function LandingPage() {
                   Create Free Account
                 </Link>
                 <Link
-                  to="/login"
+                  to="/directory"
                   className="btn-secondary text-base px-8 py-3 rounded-xl"
                 >
-                  Sign In
+                  View Influencer Directory
                 </Link>
               </div>
               <p className="text-xs text-muted-foreground/60 mt-5">

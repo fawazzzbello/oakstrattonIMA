@@ -4,13 +4,18 @@ import api from '@/utils/api'
 import { useAuthStore } from '@/store/authStore'
 import type { User, TokenResponse } from '@/types'
 
+/** Returns the post-login redirect path based on user role. */
+function roleRedirect(role: string): string {
+  if (role === 'influencer') return '/app/my-profile'
+  return '/app/dashboard'
+}
+
 export function useRegister() {
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
 
   return useMutation({
     mutationFn: async (data: { email: string; password: string; full_name: string }) => {
-      // Register now returns tokens directly — single call, no race condition
       const { data: tokens } = await api.post<TokenResponse>('/auth/register', data)
       return { tokens, email: data.email }
     },
@@ -20,9 +25,8 @@ export function useRegister() {
         localStorage.setItem('refresh_token', tokens.refresh_token)
         const { data: user } = await api.get<User>('/auth/me')
         setAuth(user, tokens.access_token, tokens.refresh_token)
-        navigate('/app/dashboard')
+        navigate(roleRedirect(user.role))
       } catch {
-        // Token is valid but /me failed — still log in with minimal user info
         setAuth(
           { id: 0, email: '', full_name: '', role: 'client' } as User,
           tokens.access_token,
@@ -49,9 +53,8 @@ export function useLogin() {
         localStorage.setItem('refresh_token', tokens.refresh_token)
         const { data: user } = await api.get<User>('/auth/me')
         setAuth(user, tokens.access_token, tokens.refresh_token)
-        navigate('/app/dashboard')
+        navigate(roleRedirect(user.role))
       } catch {
-        // Token is valid but /me failed — still navigate
         setAuth(
           { id: 0, email: '', full_name: '', role: 'client' } as User,
           tokens.access_token,
