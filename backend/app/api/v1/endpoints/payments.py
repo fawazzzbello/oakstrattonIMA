@@ -5,7 +5,10 @@ from sqlalchemy import select, func
 from app.core.deps import get_db, require_manager
 from app.core.exceptions import NotFoundError, PaymentError
 from app.models.payment import Invoice, Payout, InvoiceStatus, PayoutStatus
+from app.models.influencer import Influencer
+from app.models.notification import NotificationType
 from app.schemas.common import PaginatedResponse
+from app.services.notifications import notify_user
 from pydantic import BaseModel
 from decimal import Decimal
 from datetime import date
@@ -206,6 +209,26 @@ async def create_payout(
     db.add(payout)
     await db.commit()
     await db.refresh(payout)
+
+    # Notify influencer about the payout
+    inf_res = await db.execute(select(Influencer).where(Influencer.id == payload.influencer_id))
+    inf = inf_res.scalar_one_or_none()
+    if inf and inf.user_id:
+        amount_str = f"{float(payload.amount):,.2f}"
+        campaign_label = payload.description or "your campaign"
+        await notify_user(
+            db,
+            user_id=inf.user_id,
+            notification_type=NotificationType.PAYMENT_SENT,
+            title=f"Payment of ${amount_str} Sent",
+            body=f"A payment of ${amount_str} {payload.currency} has been processed for {campaign_label}.",
+            action_url="/app/payments",
+            send_email_alert=True,
+            email_subject=f"Payment Received: ${amount_str} {payload.currency}",
+            email_html=f"<p>Great news! A payment of <strong>${amount_str} {payload.currency}</strong> has been processed for <strong>{campaign_label}</strong>. Funds will be transferred to your account shortly.</p>",
+        )
+        await db.commit()
+
     return payout
 
 

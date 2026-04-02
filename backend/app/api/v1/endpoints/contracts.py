@@ -6,7 +6,11 @@ from app.core.deps import get_db, get_current_active_user, require_manager
 from app.core.exceptions import NotFoundError, ForbiddenError
 from app.models.user import User, UserRole
 from app.models.contract import Contract, ContractTemplate, ContractStatus
+from app.models.influencer import Influencer
+from app.models.campaign import Campaign
+from app.models.notification import NotificationType
 from app.schemas.common import PaginatedResponse
+from app.services.notifications import notify_user
 from pydantic import BaseModel
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -135,6 +139,30 @@ async def create_contract(
     db.add(contract)
     await db.commit()
     await db.refresh(contract)
+
+    # Notify influencer that a contract has been sent
+    inf_res = await db.execute(select(Influencer).where(Influencer.id == payload.influencer_id))
+    inf = inf_res.scalar_one_or_none()
+    camp_res = await db.execute(select(Campaign).where(Campaign.id == payload.campaign_id))
+    camp = camp_res.scalar_one_or_none()
+    campaign_name = camp.name if camp else "a campaign"
+    if inf and inf.user_id:
+        inf_user_res = await db.execute(select(User).where(User.id == inf.user_id))
+        inf_user = inf_user_res.scalar_one_or_none()
+        inf_name = inf_user.full_name if inf_user else "Influencer"
+        await notify_user(
+            db,
+            user_id=inf.user_id,
+            notification_type=NotificationType.CONTRACT_SENT,
+            title="New Contract Received",
+            body=f"You've received a contract for '{campaign_name}'. Review and sign it now.",
+            action_url=f"/app/contracts?contract_id={contract.id}",
+            send_email_alert=True,
+            email_subject=f"New Contract: {campaign_name}",
+            email_html=f"<p>Hello {inf_name},</p><p>A new contract has been sent to you for the campaign <strong>{campaign_name}</strong>. Please review and sign it when ready.</p>",
+        )
+        await db.commit()
+
     return contract
 
 
@@ -167,6 +195,42 @@ async def sign_contract(
 
     await db.commit()
     await db.refresh(contract)
+
+    # Post-sign notifications
+    camp_res = await db.execute(select(Campaign).where(Campaign.id == contract.campaign_id))
+    camp = camp_res.scalar_one_or_none()
+    campaign_name = camp.name if camp else "a campaign"
+
+    if current_user.role == UserRole.INFLUENCER:
+        # Notify manager that influencer signed
+        if camp and camp.manager_id:
+            await notify_user(
+                db,
+                user_id=camp.manager_id,
+                notification_type=NotificationType.CONTRACT_SIGNED,
+                title="Contract Signed by Influencer",
+                body=f"An influencer has signed the contract for '{campaign_name}'. Please review and countersign.",
+                action_url=f"/app/contracts?contract_id={contract.id}",
+            )
+            await db.commit()
+    elif contract.status == ContractStatus.FULLY_EXECUTED:
+        # Notify influencer that contract is fully executed
+        inf_res = await db.execute(select(Influencer).where(Influencer.id == contract.influencer_id))
+        inf = inf_res.scalar_one_or_none()
+        if inf and inf.user_id:
+            await notify_user(
+                db,
+                user_id=inf.user_id,
+                notification_type=NotificationType.CONTRACT_SIGNED,
+                title="Contract Fully Executed",
+                body=f"Your contract for '{campaign_name}' has been countersigned and is now fully executed.",
+                action_url=f"/app/contracts?contract_id={contract.id}",
+                send_email_alert=True,
+                email_subject=f"Contract Executed: {campaign_name}",
+                email_html=f"<p>Your contract for <strong>{campaign_name}</strong> is now fully executed. Both parties have signed. Campaign work can begin!</p>",
+            )
+            await db.commit()
+
     return contract
 
 
