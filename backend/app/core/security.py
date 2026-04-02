@@ -37,3 +37,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
+
+
+def create_password_reset_token(user_id: Any) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(hours=1)
+    payload = {"exp": expire, "sub": str(user_id), "type": "password_reset"}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def verify_password_reset_token(token: str) -> Optional[str]:
+    """Returns user_id string if token is valid, else None."""
+    return verify_token(token, token_type="password_reset")

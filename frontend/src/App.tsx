@@ -3,6 +3,9 @@ import { useAuthStore } from '@/store/authStore'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
+import ResetPasswordPage from '@/pages/ResetPasswordPage'
+import ProfilePage from '@/pages/ProfilePage'
 import DashboardPage from '@/pages/DashboardPage'
 import InfluencersPage from '@/pages/InfluencersPage'
 import InfluencerDetailPage from '@/pages/InfluencerDetailPage'
@@ -27,6 +30,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/app"
         element={
@@ -47,6 +52,7 @@ export default function App() {
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="ai-insights" element={<AIInsightsPage />} />
         <Route path="admin/*" element={<AdminPage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
