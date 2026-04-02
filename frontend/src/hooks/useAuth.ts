@@ -20,7 +20,7 @@ export function useRegister() {
         localStorage.setItem('refresh_token', tokens.refresh_token)
         const { data: user } = await api.get<User>('/auth/me')
         setAuth(user, tokens.access_token, tokens.refresh_token)
-        navigate('/dashboard')
+        navigate('/app/dashboard')
       } catch {
         // Token is valid but /me failed — still log in with minimal user info
         setAuth(
@@ -28,7 +28,7 @@ export function useRegister() {
           tokens.access_token,
           tokens.refresh_token,
         )
-        navigate('/dashboard')
+        navigate('/app/dashboard')
       }
     },
   })
@@ -49,7 +49,7 @@ export function useLogin() {
         localStorage.setItem('refresh_token', tokens.refresh_token)
         const { data: user } = await api.get<User>('/auth/me')
         setAuth(user, tokens.access_token, tokens.refresh_token)
-        navigate('/dashboard')
+        navigate('/app/dashboard')
       } catch {
         // Token is valid but /me failed — still navigate
         setAuth(
@@ -57,7 +57,7 @@ export function useLogin() {
           tokens.access_token,
           tokens.refresh_token,
         )
-        navigate('/dashboard')
+        navigate('/app/dashboard')
       }
     },
   })

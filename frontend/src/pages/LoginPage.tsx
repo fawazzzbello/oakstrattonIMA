@@ -30,7 +30,7 @@ export default function LoginPage() {
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) })
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) })
 
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
+  if (isAuthenticated) return <Navigate to="/app/dashboard" replace />
 
   const isLogin = mode === 'login'
   const isPending = login.isPending || register.isPending
