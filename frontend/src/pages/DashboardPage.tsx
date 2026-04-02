@@ -21,28 +21,28 @@ const SAMPLE_INSIGHTS = [
     title: 'High-performing influencer detected',
     description:
       'Sarah Chen has 3x above-average engagement this month. Consider expanding her campaign scope.',
-    link: '/influencers',
+    link: '/app/influencers',
   },
   {
     id: 2,
     title: 'Campaign budget optimization',
     description:
       'The "Summer Launch" campaign is under-spending by 22%. Reallocate budget to maximize ROI.',
-    link: '/campaigns',
+    link: '/app/campaigns',
   },
   {
     id: 3,
     title: 'Trending niche opportunity',
     description:
       'Wellness & self-care content is surging +45% this quarter. 12 influencers in your roster match.',
-    link: '/influencers',
+    link: '/app/influencers',
   },
   {
     id: 4,
     title: 'Content approval bottleneck',
     description:
       '7 deliverables are awaiting review for more than 48 hours. Approve them to keep timelines on track.',
-    link: '/campaigns',
+    link: '/app/campaigns',
   },
 ]
 
@@ -358,18 +358,18 @@ export default function DashboardPage() {
 
       {/* ── Quick Actions ── */}
       <div className="flex flex-wrap gap-3">
-        <Link to="/campaigns" className="btn-primary inline-flex items-center gap-2">
+        <Link to="/app/campaigns" className="btn-primary inline-flex items-center gap-2">
           <Megaphone size={16} />
           Create Campaign
         </Link>
-        <Link to="/influencers" className="btn-secondary inline-flex items-center gap-2">
+        <Link to="/app/influencers" className="btn-secondary inline-flex items-center gap-2">
           <Users size={16} />
           Find Influencers
         </Link>
-        <button className="btn-secondary inline-flex items-center gap-2">
+        <Link to="/app/ai-insights" className="btn-secondary inline-flex items-center gap-2">
           <Sparkles size={16} className="text-violet-400" />
           Generate AI Report
-        </button>
+        </Link>
       </div>
     </div>
   )
