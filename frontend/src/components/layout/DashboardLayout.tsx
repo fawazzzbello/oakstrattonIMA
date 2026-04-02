@@ -1,23 +1,25 @@
-import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Sparkles, Megaphone, Users, Building2, FileText,
-  CreditCard, BarChart3, Shield, LogOut, Bell, Search, Menu, X, UserCircle,
+  CreditCard, BarChart3, Shield, LogOut, Bell, Search, Menu, X,
+  UserCircle, UserCheck,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { useLogout } from '@/hooks/useAuth'
 import { cn } from '@/utils/cn'
+import type { UserRole } from '@/types'
 
 interface NavItem {
   to: string
   icon: React.ElementType
   label: string
+  roles?: UserRole[]  // if set, only these roles see this item; undefined = all roles
 }
 
 interface NavGroup {
   title: string
   items: NavItem[]
-  adminOnly?: boolean
 }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -30,15 +32,15 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'AI FEATURES',
     items: [
-      { to: '/app/ai-insights', icon: Sparkles, label: 'AI Insights' },
+      { to: '/app/ai-insights', icon: Sparkles, label: 'AI Insights', roles: ['admin', 'manager'] },
     ],
   },
   {
     title: 'MANAGEMENT',
     items: [
       { to: '/app/campaigns', icon: Megaphone, label: 'Campaigns' },
-      { to: '/app/influencers', icon: Users, label: 'Influencers' },
-      { to: '/app/clients', icon: Building2, label: 'Clients' },
+      { to: '/app/influencers', icon: Users, label: 'Influencers', roles: ['admin', 'manager'] },
+      { to: '/app/clients', icon: Building2, label: 'Clients', roles: ['admin', 'manager'] },
     ],
   },
   {
@@ -46,14 +48,19 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/app/contracts', icon: FileText, label: 'Contracts' },
       { to: '/app/payments', icon: CreditCard, label: 'Payments' },
-      { to: '/app/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/app/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin', 'manager'] },
+    ],
+  },
+  {
+    title: 'MY WORKSPACE',
+    items: [
+      { to: '/app/my-profile', icon: UserCheck, label: 'My Profile', roles: ['influencer'] },
     ],
   },
   {
     title: 'ADMIN',
-    adminOnly: true,
     items: [
-      { to: '/app/admin', icon: Shield, label: 'Platform Admin' },
+      { to: '/app/admin', icon: Shield, label: 'Platform Admin', roles: ['admin'] },
     ],
   },
 ]
@@ -68,6 +75,15 @@ const PAGE_TITLES: Record<string, string> = {
   '/app/payments': 'Payments',
   '/app/analytics': 'Analytics',
   '/app/admin': 'Platform Admin',
+  '/app/my-profile': 'My Profile',
+  '/app/profile': 'Account Settings',
+}
+
+const ROLE_BADGE_COLORS: Record<UserRole, string> = {
+  admin: 'bg-rose-400/15 text-rose-400',
+  manager: 'bg-violet-400/15 text-violet-400',
+  client: 'bg-cyan-400/15 text-cyan-400',
+  influencer: 'bg-emerald-400/15 text-emerald-400',
 }
 
 export default function DashboardLayout() {
@@ -76,11 +92,15 @@ export default function DashboardLayout() {
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
 
+  const role = (user?.role ?? 'client') as UserRole
+
   const currentTitle = Object.entries(PAGE_TITLES).find(
     ([path]) => location.pathname.startsWith(path)
   )?.[1] ?? 'Dashboard'
 
-  const isAdmin = user?.role === 'admin'
+  // Filter a group's items to only those the current role can see
+  const visibleItems = (items: NavItem[]) =>
+    items.filter((item) => !item.roles || item.roles.includes(role))
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -97,14 +117,15 @@ export default function DashboardLayout() {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
         {NAV_GROUPS.map((group) => {
-          if (group.adminOnly && !isAdmin) return null
+          const items = visibleItems(group.items)
+          if (items.length === 0) return null
           return (
             <div key={group.title}>
               <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 {group.title}
               </p>
               <div className="space-y-0.5">
-                {group.items.map(({ to, icon: Icon, label }) => (
+                {items.map(({ to, icon: Icon, label }) => (
                   <NavLink
                     key={to}
                     to={to}
@@ -140,8 +161,8 @@ export default function DashboardLayout() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate text-foreground">{user?.full_name}</p>
-            <span className="status-badge bg-violet-400/10 text-violet-400 text-[10px] mt-0.5">
-              {user?.role}
+            <span className={cn('inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium mt-0.5', ROLE_BADGE_COLORS[role])}>
+              {role}
             </span>
           </div>
           <UserCircle size={15} className="text-muted-foreground shrink-0" />
@@ -192,7 +213,6 @@ export default function DashboardLayout() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
         <header className="h-16 shrink-0 border-b border-border/40 bg-card/50 backdrop-blur-sm flex items-center px-4 sm:px-6 gap-4">
-          {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(true)}
             className="lg:hidden p-2 rounded-lg hover:bg-muted/50 text-muted-foreground"
@@ -200,7 +220,6 @@ export default function DashboardLayout() {
             <Menu size={20} />
           </button>
 
-          {/* Page title */}
           <h2 className="text-lg font-heading font-semibold text-foreground hidden sm:block">
             {currentTitle}
           </h2>

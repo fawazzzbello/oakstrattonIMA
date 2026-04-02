@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, model_validator
 from app.models.user import UserRole
 
 
@@ -37,5 +37,18 @@ class UserResponse(UserBase):
     is_verified: bool
     created_at: datetime
     updated_at: datetime
+    influencer_id: Optional[int] = None
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_influencer_id(cls, data):
+        # When populated from a SQLAlchemy model that has influencer_profile loaded
+        if hasattr(data, "influencer_profile") and data.influencer_profile is not None:
+            # Wrap in a dict so Pydantic can populate influencer_id
+            from pydantic import ConfigDict
+            obj = {col.name: getattr(data, col.name) for col in data.__table__.columns}
+            obj["influencer_id"] = data.influencer_profile.id
+            return obj
+        return data

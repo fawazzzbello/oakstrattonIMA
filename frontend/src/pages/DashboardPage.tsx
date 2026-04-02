@@ -101,14 +101,18 @@ function formatRelativeTime(isoString: string): string {
 // ── Component ─────────────────────────────────────────────
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user)
+  const role = user?.role ?? 'client'
+  const isAgencyUser = role === 'admin' || role === 'manager'
 
-  // Agency overview KPIs
+  // Agency overview KPIs — only for admin/manager (endpoint requires manager role)
   const { data: overview, isLoading } = useQuery({
     queryKey: ['analytics', 'overview'],
     queryFn: async () => {
       const { data } = await api.get<AgencyOverview>('/analytics/overview')
       return data
     },
+    enabled: isAgencyUser,
+    retry: false,
   })
 
   // Notifications for activity feed
@@ -121,13 +125,14 @@ export default function DashboardPage() {
     retry: false,
   })
 
-  // AI insights (falls back to sample data)
+  // AI insights — only for admin/manager
   const { data: aiInsights } = useQuery({
     queryKey: ['ai-insights'],
     queryFn: async () => {
       const { data } = await api.get('/ai/insights')
       return data
     },
+    enabled: isAgencyUser,
     retry: false,
   })
 
@@ -143,8 +148,8 @@ export default function DashboardPage() {
       }))
     : SAMPLE_ACTIVITY
 
-  // ── Loading skeleton ──
-  if (isLoading) {
+  // ── Loading skeleton (only shown for agency users waiting for overview) ──
+  if (isAgencyUser && isLoading) {
     return (
       <div className="page-container">
         <div className="h-10 w-72 bg-muted/50 rounded-lg animate-pulse" />
@@ -212,39 +217,41 @@ export default function DashboardPage() {
         <p className="page-subtitle mt-1">{formatDate()}</p>
       </div>
 
-      {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {kpis.map((kpi) => {
-          const Icon = kpi.icon
-          return (
-            <div key={kpi.label} className="glass-card-hover p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-muted-foreground">{kpi.label}</span>
-                <div
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center ${kpi.iconBg}`}
-                >
-                  <Icon size={18} className={kpi.iconColor} />
+      {/* ── KPI Cards (agency users only) ── */}
+      {isAgencyUser && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {kpis.map((kpi) => {
+            const Icon = kpi.icon
+            return (
+              <div key={kpi.label} className="glass-card-hover p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-muted-foreground">{kpi.label}</span>
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center ${kpi.iconBg}`}
+                  >
+                    <Icon size={18} className={kpi.iconColor} />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold font-heading">{kpi.value}</div>
+                <div className="flex items-center gap-1 mt-1.5 text-xs">
+                  {kpi.up ? (
+                    <ArrowUpRight size={14} className="text-emerald-400" />
+                  ) : (
+                    <ArrowDownRight size={14} className="text-rose-400" />
+                  )}
+                  <span className={kpi.up ? 'text-emerald-400' : 'text-rose-400'}>
+                    {kpi.change}
+                  </span>
+                  <span className="text-muted-foreground ml-0.5">vs last month</span>
                 </div>
               </div>
-              <div className="text-2xl font-bold font-heading">{kpi.value}</div>
-              <div className="flex items-center gap-1 mt-1.5 text-xs">
-                {kpi.up ? (
-                  <ArrowUpRight size={14} className="text-emerald-400" />
-                ) : (
-                  <ArrowDownRight size={14} className="text-rose-400" />
-                )}
-                <span className={kpi.up ? 'text-emerald-400' : 'text-rose-400'}>
-                  {kpi.change}
-                </span>
-                <span className="text-muted-foreground ml-0.5">vs last month</span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
 
-      {/* ── AI Insights + Campaign Performance Chart ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ── AI Insights + Campaign Performance Chart (agency only) ── */}
+      {isAgencyUser && <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* AI Insights Panel */}
         <div className="glass-card p-6">
           <div className="flex items-center gap-2 mb-5">
@@ -330,7 +337,7 @@ export default function DashboardPage() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </div>}
 
       {/* ── Recent Activity ── */}
       <div className="glass-card p-6">
@@ -356,19 +363,39 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Quick Actions ── */}
+      {/* ── Quick Actions (role-gated) ── */}
       <div className="flex flex-wrap gap-3">
-        <Link to="/app/campaigns" className="btn-primary inline-flex items-center gap-2">
-          <Megaphone size={16} />
-          Create Campaign
-        </Link>
-        <Link to="/app/influencers" className="btn-secondary inline-flex items-center gap-2">
-          <Users size={16} />
-          Find Influencers
-        </Link>
-        <Link to="/app/ai-insights" className="btn-secondary inline-flex items-center gap-2">
-          <Sparkles size={16} className="text-violet-400" />
-          Generate AI Report
+        {isAgencyUser && (
+          <>
+            <Link to="/app/campaigns" className="btn-primary inline-flex items-center gap-2">
+              <Megaphone size={16} />
+              Create Campaign
+            </Link>
+            <Link to="/app/influencers" className="btn-secondary inline-flex items-center gap-2">
+              <Users size={16} />
+              Find Influencers
+            </Link>
+            <Link to="/app/ai-insights" className="btn-secondary inline-flex items-center gap-2">
+              <Sparkles size={16} className="text-violet-400" />
+              Generate AI Report
+            </Link>
+          </>
+        )}
+        {role === 'client' && (
+          <Link to="/app/campaigns" className="btn-primary inline-flex items-center gap-2">
+            <Megaphone size={16} />
+            View My Campaigns
+          </Link>
+        )}
+        {role === 'influencer' && (
+          <Link to="/app/my-profile" className="btn-primary inline-flex items-center gap-2">
+            <Users size={16} />
+            Update My Profile
+          </Link>
+        )}
+        <Link to="/app/contracts" className="btn-secondary inline-flex items-center gap-2">
+          <FileText size={16} />
+          {isAgencyUser ? 'Contracts' : 'My Contracts'}
         </Link>
       </div>
     </div>

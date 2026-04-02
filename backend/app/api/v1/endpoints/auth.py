@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from typing import Optional
 from app.core.deps import get_db, get_current_active_user
 from app.core.config import settings
@@ -99,8 +100,18 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_active_user)):
-    return current_user
+async def get_me(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    # Reload with influencer_profile eagerly loaded so the schema can read it
+    result = await db.execute(
+        select(User)
+        .where(User.id == current_user.id)
+        .options(selectinload(User.influencer_profile))
+    )
+    user = result.scalar_one()
+    return user
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)

@@ -10,11 +10,13 @@ export interface PaginatedResponse<T> {
 }
 
 // --- Auth ---
+export type UserRole = 'admin' | 'manager' | 'client' | 'influencer'
+
 export interface User {
   id: number
   email: string
   full_name: string
-  role: 'admin' | 'manager' | 'client' | 'influencer'
+  role: UserRole
   is_active: boolean
   is_verified: boolean
   avatar_url?: string
@@ -22,6 +24,7 @@ export interface User {
   timezone: string
   created_at: string
   updated_at: string
+  influencer_id?: number
 }
 
 export interface TokenResponse {
