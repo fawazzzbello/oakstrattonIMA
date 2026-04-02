@@ -314,6 +314,47 @@ export interface AIChatMessage {
 }
 
 // --- Admin Types ---
+
+export interface FooterLink {
+  label: string
+  url: string
+}
+
+export interface SocialLink {
+  platform: 'twitter' | 'instagram' | 'linkedin' | 'tiktok' | 'youtube' | 'facebook'
+  url: string
+}
+
+export interface LandingStatItem {
+  value: string
+  label: string
+}
+
+/** Stored inside features_config.footer */
+export interface FooterConfig {
+  copyright?: string
+  tagline?: string
+  links?: FooterLink[]
+  social?: SocialLink[]
+}
+
+/** Stored inside features_config.landing */
+export interface LandingConfig {
+  hero_headline?: string
+  hero_subtitle?: string
+  cta_primary_text?: string
+  cta_secondary_text?: string
+  stats?: LandingStatItem[]
+  show_directory_cta?: boolean
+  show_features?: boolean
+}
+
+export interface PlatformFeaturesConfig {
+  landing?: LandingConfig
+  footer?: FooterConfig
+  [key: string]: unknown
+}
+
 export interface PlatformSettings {
   id: number
   agency_name: string
@@ -329,9 +370,23 @@ export interface PlatformSettings {
   terms_url: string | null
   privacy_url: string | null
   custom_css: string | null
-  features_config: Record<string, boolean> | null
+  features_config: PlatformFeaturesConfig | null
   max_ai_requests_per_day: number
   ai_model_override: string | null
+}
+
+/** Returned by GET /directory/public-settings — no auth required */
+export interface PublicSiteSettings {
+  agency_name: string
+  agency_tagline: string | null
+  agency_logo_url: string | null
+  primary_color: string
+  accent_color: string
+  support_email: string | null
+  terms_url: string | null
+  privacy_url: string | null
+  landing_config: LandingConfig | null
+  footer_config: FooterConfig | null
 }
 
 export interface FeatureFlag {
