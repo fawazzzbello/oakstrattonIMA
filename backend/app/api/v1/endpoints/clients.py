@@ -14,7 +14,7 @@ router = APIRouter(prefix="/clients", tags=["clients"])
 
 
 class ClientCreate(BaseModel):
-    user_id: int
+    user_id: Opt[int] = None   # defaults to current user if omitted
     company_name: str
     company_website: Opt[str] = None
     industry: Opt[str] = None
@@ -96,7 +96,10 @@ async def create_client(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_manager),
 ):
-    client = Client(**payload.model_dump(exclude_unset=True))
+    data = payload.model_dump(exclude_unset=True)
+    if "user_id" not in data or data["user_id"] is None:
+        data["user_id"] = current_user.id
+    client = Client(**data)
     db.add(client)
     await db.commit()
     await db.refresh(client)

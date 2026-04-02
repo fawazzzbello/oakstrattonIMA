@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import {
   Building2,
@@ -55,10 +55,12 @@ const emptyForm: ClientFormData = {
 }
 
 export default function ClientsPage() {
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState<ClientFormData>(emptyForm)
+  const [submitError, setSubmitError] = useState('')
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['clients'],
@@ -90,15 +92,22 @@ export default function ClientsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitError('')
     try {
       await api.post('/clients', {
-        ...formData,
-        monthly_budget: formData.monthly_budget ? Number(formData.monthly_budget) : null,
+        company_name: formData.company_name,
+        industry: formData.industry || undefined,
+        billing_email: formData.billing_email || undefined,
+        company_website: formData.company_website || undefined,
+        monthly_budget: formData.monthly_budget ? Number(formData.monthly_budget) : undefined,
+        currency: formData.currency,
+        notes: formData.notes || undefined,
       })
       setShowModal(false)
-      window.location.reload()
-    } catch {
-      // error handled by interceptor
+      setFormData(emptyForm)
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
+    } catch (err: any) {
+      setSubmitError(err?.response?.data?.detail ?? 'Failed to create client')
     }
   }
 
@@ -383,6 +392,10 @@ export default function ClientsPage() {
                   placeholder="Additional notes..."
                 />
               </div>
+
+              {submitError && (
+                <p className="text-destructive text-sm bg-destructive/10 px-3 py-2 rounded-lg">{submitError}</p>
+              )}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">

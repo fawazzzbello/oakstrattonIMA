@@ -45,7 +45,7 @@ export default function InfluencerDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link to="/influencers" className="p-2 rounded-lg hover:bg-muted">
+        <Link to="/app/influencers" className="p-2 rounded-lg hover:bg-muted">
           <ArrowLeft size={18} />
         </Link>
         <h1 className="text-2xl font-bold">Influencer Profile</h1>
@@ -59,7 +59,10 @@ export default function InfluencerDetailPage() {
               {String(influencer.user_id).slice(-2)}
             </div>
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium mb-3 ${
-              influencer.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+              influencer.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' :
+              influencer.status === 'pending' ? 'bg-amber-400/10 text-amber-400' :
+              influencer.status === 'suspended' ? 'bg-rose-400/10 text-rose-400' :
+              'bg-slate-400/10 text-slate-400'
             }`}>
               {influencer.status}
             </span>
