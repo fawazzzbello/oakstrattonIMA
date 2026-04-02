@@ -22,7 +22,7 @@ class Contract(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     status: Mapped[ContractStatus] = mapped_column(
-        Enum(ContractStatus, name="contractstatus"), default=ContractStatus.DRAFT
+        Enum(ContractStatus, name="contractstatus", values_callable=lambda x: [e.value for e in x]), default=ContractStatus.DRAFT
     )
 
     # Parties

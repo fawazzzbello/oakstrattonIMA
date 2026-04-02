@@ -36,7 +36,7 @@ class Influencer(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
     status: Mapped[InfluencerStatus] = mapped_column(
-        Enum(InfluencerStatus, name="influencerstatus"), default=InfluencerStatus.PENDING
+        Enum(InfluencerStatus, name="influencerstatus", values_callable=lambda x: [e.value for e in x]), default=InfluencerStatus.PENDING
     )
 
     # Profile

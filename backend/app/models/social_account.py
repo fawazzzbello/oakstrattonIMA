@@ -24,7 +24,7 @@ class SocialAccount(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     influencer_id: Mapped[int] = mapped_column(ForeignKey("influencers.id"), nullable=False)
-    platform: Mapped[SocialPlatform] = mapped_column(Enum(SocialPlatform, name="socialplatform"), nullable=False)
+    platform: Mapped[SocialPlatform] = mapped_column(Enum(SocialPlatform, name="socialplatform", values_callable=lambda x: [e.value for e in x]), nullable=False)
 
     # Account identifiers
     platform_user_id: Mapped[Optional[str]] = mapped_column(String(255), index=True)

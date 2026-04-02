@@ -79,10 +79,10 @@ class Campaign(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
     campaign_type: Mapped[CampaignType] = mapped_column(
-        Enum(CampaignType, name="campaigntype"), nullable=False
+        Enum(CampaignType, name="campaigntype", values_callable=lambda x: [e.value for e in x]), nullable=False
     )
     status: Mapped[CampaignStatus] = mapped_column(
-        Enum(CampaignStatus, name="campaignstatus"), default=CampaignStatus.DRAFT
+        Enum(CampaignStatus, name="campaignstatus", values_callable=lambda x: [e.value for e in x]), default=CampaignStatus.DRAFT
     )
 
     # Timeline
@@ -145,7 +145,7 @@ class CampaignInfluencer(Base, TimestampMixin):
     campaign_id: Mapped[int] = mapped_column(ForeignKey("campaigns.id"), nullable=False)
     influencer_id: Mapped[int] = mapped_column(ForeignKey("influencers.id"), nullable=False)
     status: Mapped[CampaignInfluencerStatus] = mapped_column(
-        Enum(CampaignInfluencerStatus, name="campaigninfluencerstatus"),
+        Enum(CampaignInfluencerStatus, name="campaigninfluencerstatus", values_callable=lambda x: [e.value for e in x]),
         default=CampaignInfluencerStatus.INVITED,
     )
 
@@ -176,10 +176,10 @@ class Deliverable(Base, TimestampMixin):
         ForeignKey("campaign_influencers.id"), nullable=False
     )
     deliverable_type: Mapped[DeliverableType] = mapped_column(
-        Enum(DeliverableType, name="deliverabletype"), nullable=False
+        Enum(DeliverableType, name="deliverabletype", values_callable=lambda x: [e.value for e in x]), nullable=False
     )
     status: Mapped[DeliverableStatus] = mapped_column(
-        Enum(DeliverableStatus, name="deliverablestatus"), default=DeliverableStatus.PENDING
+        Enum(DeliverableStatus, name="deliverablestatus", values_callable=lambda x: [e.value for e in x]), default=DeliverableStatus.PENDING
     )
 
     # Requirements
