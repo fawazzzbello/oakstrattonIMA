@@ -40,7 +40,7 @@ class Invoice(Base, TimestampMixin):
     invoice_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"), nullable=False)
     campaign_id: Mapped[Optional[int]] = mapped_column(ForeignKey("campaigns.id"))
-    status: Mapped[InvoiceStatus] = mapped_column(Enum(InvoiceStatus, name="invoicestatus"), default=InvoiceStatus.DRAFT)
+    status: Mapped[InvoiceStatus] = mapped_column(Enum(InvoiceStatus, name="invoicestatus", values_callable=lambda x: [e.value for e in x]), default=InvoiceStatus.DRAFT)
 
     # Amounts
     subtotal: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
@@ -83,7 +83,7 @@ class Payout(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     influencer_id: Mapped[int] = mapped_column(ForeignKey("influencers.id"), nullable=False)
     campaign_influencer_id: Mapped[Optional[int]] = mapped_column(ForeignKey("campaign_influencers.id"))
-    status: Mapped[PayoutStatus] = mapped_column(Enum(PayoutStatus, name="payoutstatus"), default=PayoutStatus.PENDING)
+    status: Mapped[PayoutStatus] = mapped_column(Enum(PayoutStatus, name="payoutstatus", values_callable=lambda x: [e.value for e in x]), default=PayoutStatus.PENDING)
 
     amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="USD")
@@ -116,7 +116,7 @@ class Transaction(Base, TimestampMixin):
     __tablename__ = "transactions"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    transaction_type: Mapped[TransactionType] = mapped_column(Enum(TransactionType, name="transactiontype"), nullable=False)
+    transaction_type: Mapped[TransactionType] = mapped_column(Enum(TransactionType, name="transactiontype", values_callable=lambda x: [e.value for e in x]), nullable=False)
     amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="USD")
 
