@@ -45,6 +45,7 @@ class InfluencerBase(BaseModel):
 
 
 class InfluencerCreate(InfluencerBase):
+    user_id: Optional[int] = None  # managers specify target user; influencers omit (self)
     rate_per_post: Optional[Decimal] = None
     rate_per_story: Optional[Decimal] = None
     rate_per_reel: Optional[Decimal] = None

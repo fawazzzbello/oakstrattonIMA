@@ -2,6 +2,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, and_
+from sqlalchemy.orm import selectinload
 from app.core.deps import get_db, get_current_active_user, require_manager
 from app.core.exceptions import NotFoundError, ForbiddenError
 from app.models.user import User, UserRole
@@ -12,6 +13,7 @@ from app.schemas.influencer import (
     SocialAccountCreate, SocialAccountResponse, InfluencerSearchParams,
 )
 from app.schemas.common import PaginatedResponse
+from fastapi import HTTPException
 
 router = APIRouter(prefix="/influencers", tags=["influencers"])
 
@@ -41,7 +43,8 @@ async def list_influencers(
     total = total_result.scalar_one()
 
     result = await db.execute(
-        query.order_by(Influencer.created_at.desc()).offset(skip).limit(limit)
+        query.options(selectinload(Influencer.social_accounts))
+        .order_by(Influencer.created_at.desc()).offset(skip).limit(limit)
     )
     influencers = result.scalars().all()
 
@@ -52,17 +55,36 @@ async def list_influencers(
 async def create_influencer(
     payload: InfluencerCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_manager),
+    current_user: User = Depends(get_current_active_user),
 ):
-    """Create an influencer profile for an existing user (admin/manager action)."""
-    influencer = Influencer(
-        user_id=current_user.id,
-        **payload.model_dump(exclude_unset=True),
-    )
+    """Create an influencer profile. Influencers self-register; managers create for a specific user_id."""
+    # Determine target user_id
+    if current_user.role == UserRole.INFLUENCER:
+        target_user_id = current_user.id
+    elif current_user.role in (UserRole.ADMIN, UserRole.MANAGER):
+        data = payload.model_dump(exclude_unset=True)
+        target_user_id = data.pop("user_id", None) or current_user.id
+    else:
+        raise ForbiddenError("Only influencers and agency staff can create influencer profiles")
+
+    # Check for existing profile
+    existing = await db.execute(select(Influencer).where(Influencer.user_id == target_user_id))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="An influencer profile already exists for this user")
+
+    data = payload.model_dump(exclude_unset=True)
+    data.pop("user_id", None)  # remove if present in data dict
+    influencer = Influencer(user_id=target_user_id, **data)
     db.add(influencer)
     await db.commit()
     await db.refresh(influencer)
-    return influencer
+
+    # Reload with social_accounts
+    result = await db.execute(
+        select(Influencer).where(Influencer.id == influencer.id)
+        .options(selectinload(Influencer.social_accounts))
+    )
+    return result.scalar_one()
 
 
 @router.get("/{influencer_id}", response_model=InfluencerResponse)
@@ -73,6 +95,7 @@ async def get_influencer(
 ):
     result = await db.execute(
         select(Influencer).where(Influencer.id == influencer_id)
+        .options(selectinload(Influencer.social_accounts))
     )
     influencer = result.scalar_one_or_none()
     if not influencer:
@@ -92,7 +115,10 @@ async def update_influencer(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    result = await db.execute(select(Influencer).where(Influencer.id == influencer_id))
+    result = await db.execute(
+        select(Influencer).where(Influencer.id == influencer_id)
+        .options(selectinload(Influencer.social_accounts))
+    )
     influencer = result.scalar_one_or_none()
     if not influencer:
         raise NotFoundError("Influencer", influencer_id)
@@ -109,7 +135,13 @@ async def update_influencer(
 
     await db.commit()
     await db.refresh(influencer)
-    return influencer
+
+    # Reload with social_accounts after update
+    result = await db.execute(
+        select(Influencer).where(Influencer.id == influencer_id)
+        .options(selectinload(Influencer.social_accounts))
+    )
+    return result.scalar_one()
 
 
 @router.post("/{influencer_id}/social-accounts", response_model=SocialAccountResponse)
