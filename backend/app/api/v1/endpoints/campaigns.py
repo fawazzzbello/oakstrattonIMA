@@ -9,12 +9,16 @@ from app.models.campaign import (
     Campaign, CampaignInfluencer, Deliverable, CampaignMetrics,
     CampaignStatus, DeliverableStatus,
 )
+from app.models.client import Client
+from app.models.influencer import Influencer
+from app.models.notification import NotificationType
 from app.schemas.campaign import (
     CampaignCreate, CampaignUpdate, CampaignResponse,
     CampaignInfluencerCreate, CampaignInfluencerUpdate, CampaignInfluencerResponse,
     DeliverableUpdate, DeliverableResponse, CampaignMetricsResponse,
 )
 from app.schemas.common import PaginatedResponse
+from app.services.notifications import notify_user
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
@@ -63,6 +67,27 @@ async def create_campaign(
     db.add(campaign)
     await db.commit()
     await db.refresh(campaign)
+
+    # Notify the client that their campaign has been created
+    if campaign.client_id:
+        client_res = await db.execute(
+            select(Client).where(Client.id == campaign.client_id)
+        )
+        client = client_res.scalar_one_or_none()
+        if client and client.user_id:
+            await notify_user(
+                db,
+                user_id=client.user_id,
+                notification_type=NotificationType.CAMPAIGN_STARTED,
+                title=f"Campaign '{campaign.name}' created",
+                body="Your new campaign is live. Influencer matching will begin shortly.",
+                action_url=f"/app/campaigns/{campaign.id}",
+                send_email_alert=True,
+                email_subject=f"New Campaign: {campaign.name}",
+                email_html=f"<p>Your campaign <strong>{campaign.name}</strong> has been created and is now active. Our team will begin matching influencers shortly.</p>",
+            )
+            await db.commit()
+
     return campaign
 
 
@@ -196,6 +221,8 @@ async def update_deliverable(
     if not deliverable:
         raise NotFoundError("Deliverable", deliverable_id)
 
+    prev_status = deliverable.status
+
     if payload.status == DeliverableStatus.APPROVED:
         if current_user.role not in (UserRole.ADMIN, UserRole.MANAGER):
             raise ForbiddenError("Only managers can approve deliverables")
@@ -211,6 +238,62 @@ async def update_deliverable(
 
     await db.commit()
     await db.refresh(deliverable)
+
+    # Post-commit notifications
+    new_status = deliverable.status
+    if new_status != prev_status:
+        # Get influencer user_id via CampaignInfluencer → Influencer
+        ci_res = await db.execute(
+            select(CampaignInfluencer).where(CampaignInfluencer.id == deliverable.campaign_influencer_id)
+        )
+        ci = ci_res.scalar_one_or_none()
+        if ci:
+            inf_res = await db.execute(
+                select(Influencer).where(Influencer.id == ci.influencer_id)
+            )
+            inf = inf_res.scalar_one_or_none()
+            campaign_res = await db.execute(
+                select(Campaign).where(Campaign.id == ci.campaign_id)
+            )
+            campaign = campaign_res.scalar_one_or_none()
+            campaign_name = campaign.name if campaign else "your campaign"
+
+            if inf and inf.user_id:
+                if new_status == DeliverableStatus.APPROVED:
+                    await notify_user(
+                        db, inf.user_id,
+                        NotificationType.DELIVERABLE_APPROVED,
+                        title="Deliverable Approved ✓",
+                        body=f"Your deliverable for '{campaign_name}' has been approved. Great work!",
+                        action_url="/app/campaigns",
+                        send_email_alert=True,
+                        email_subject=f"Deliverable Approved: {campaign_name}",
+                        email_html=f"<p>Your deliverable for <strong>{campaign_name}</strong> has been approved. Payment will follow shortly.</p>",
+                    )
+                elif new_status == DeliverableStatus.REVISION_REQUESTED:
+                    await notify_user(
+                        db, inf.user_id,
+                        NotificationType.DELIVERABLE_REVISION,
+                        title="Revision Requested",
+                        body=f"Your manager has requested a revision on '{campaign_name}'.",
+                        action_url="/app/campaigns",
+                        send_email_alert=True,
+                        email_subject=f"Revision Requested: {campaign_name}",
+                        email_html=f"<p>A revision has been requested on your deliverable for <strong>{campaign_name}</strong>. Please check the notes and resubmit.</p>",
+                    )
+                await db.commit()
+
+            # Notify manager when influencer submits
+            if new_status == DeliverableStatus.SUBMITTED and campaign and campaign.manager_id:
+                await notify_user(
+                    db, campaign.manager_id,
+                    NotificationType.DELIVERABLE_SUBMITTED,
+                    title="Deliverable Submitted for Review",
+                    body=f"An influencer has submitted a deliverable for '{campaign_name}'. Please review.",
+                    action_url=f"/app/campaigns/{ci.campaign_id}",
+                )
+                await db.commit()
+
     return deliverable
 
 

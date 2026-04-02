@@ -2,13 +2,16 @@ import { Outlet, NavLink, Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Sparkles, Megaphone, Users, Building2, FileText,
   CreditCard, BarChart3, Shield, LogOut, Bell, Search, Menu, X,
-  UserCircle, UserCheck,
+  UserCircle, UserCheck, CheckCheck, Trash2, ExternalLink,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useLogout } from '@/hooks/useAuth'
 import { cn } from '@/utils/cn'
+import api from '@/utils/api'
 import type { UserRole } from '@/types'
+import { format } from 'date-fns'
 
 interface NavItem {
   to: string
@@ -90,13 +93,46 @@ export default function DashboardLayout() {
   const { user } = useAuthStore()
   const logout = useLogout()
   const location = useLocation()
+  const qc = useQueryClient()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   const role = (user?.role ?? 'client') as UserRole
 
   const currentTitle = Object.entries(PAGE_TITLES).find(
     ([path]) => location.pathname.startsWith(path)
   )?.[1] ?? 'Dashboard'
+
+  // Fetch notifications
+  const { data: notificationsData } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const { data } = await api.get<any>('/notifications?limit=10')
+      return data
+    },
+    refetchInterval: 30000, // refresh every 30 seconds
+  })
+
+  const notifications = notificationsData?.items ?? []
+  const unreadCount = notifications.filter((n: any) => !n.is_read).length
+
+  const markReadMutation = useMutation({
+    mutationFn: async (notifId: number) => {
+      await api.post(`/notifications/${notifId}/read`)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      await api.post('/notifications/read-all')
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
 
   // Filter a group's items to only those the current role can see
   const visibleItems = (items: NavItem[]) =>
@@ -237,10 +273,71 @@ export default function DashboardLayout() {
           </div>
 
           {/* Notification bell */}
-          <button className="relative p-2 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors duration-200">
-            <Bell size={20} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              className="relative p-2 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors duration-200"
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-5 h-5 bg-destructive rounded-full text-white text-xs flex items-center justify-center font-bold">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification dropdown panel */}
+            {notificationsOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-card rounded-xl border border-border/40 shadow-lg z-50 flex flex-col max-h-[500px]">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
+                  <h3 className="font-semibold text-sm">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={() => markAllReadMutation.mutate()}
+                      className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
+                    >
+                      <CheckCheck size={12} />
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                {notifications.length > 0 ? (
+                  <div className="flex-1 overflow-y-auto space-y-1 p-2">
+                    {notifications.map((notif: any) => (
+                      <div
+                        key={notif.id}
+                        className={cn(
+                          'p-3 rounded-lg text-sm cursor-pointer transition-colors',
+                          notif.is_read ? 'bg-muted/20 text-muted-foreground' : 'bg-primary/10 text-foreground hover:bg-primary/15'
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-xs mb-0.5">{notif.title}</p>
+                            {notif.body && <p className="text-xs text-muted-foreground line-clamp-2">{notif.body}</p>}
+                            <p className="text-xs text-muted-foreground/50 mt-1">{format(new Date(notif.created_at), 'MMM d, HH:mm')}</p>
+                          </div>
+                          <button
+                            onClick={() => markReadMutation.mutate(notif.id)}
+                            className="shrink-0 p-1 hover:bg-muted rounded transition-colors"
+                            title={notif.is_read ? 'Mark unread' : 'Mark as read'}
+                          >
+                            {notif.is_read ? <Trash2 size={12} className="text-muted-foreground" /> : <CheckCheck size={12} className="text-primary" />}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-sm text-muted-foreground">
+                    <Bell size={20} className="mx-auto mb-2 opacity-30" />
+                    <p>No notifications yet</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* User avatar (mobile) */}
           <div className="flex items-center gap-2 sm:hidden">

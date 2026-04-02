@@ -2,7 +2,7 @@
 Public directory endpoints — no authentication required.
 Returns a curated public view of influencers and agency team members.
 """
-from typing import Optional, List
+from typing import Optional, List, Any
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
@@ -14,6 +14,7 @@ from app.core.deps import get_db
 from app.models.user import User, UserRole
 from app.models.influencer import Influencer, InfluencerStatus
 from app.models.social_account import SocialAccount
+from app.models.platform_settings import PlatformSettings
 
 router = APIRouter(prefix="/directory", tags=["directory"])
 
@@ -55,6 +56,20 @@ class PublicTeamMember(BaseModel):
 class DirectoryInfluencersResponse(BaseModel):
     items: List[PublicInfluencerCard]
     total: int
+
+
+class PublicSettings(BaseModel):
+    """Safe public-facing subset of platform settings for the landing page."""
+    agency_name: str
+    agency_tagline: Optional[str] = None
+    agency_logo_url: Optional[str] = None
+    primary_color: str
+    accent_color: str
+    support_email: Optional[str] = None
+    terms_url: Optional[str] = None
+    privacy_url: Optional[str] = None
+    landing_config: Optional[dict] = None
+    footer_config: Optional[dict] = None
 
 
 class DirectoryTeamResponse(BaseModel):
@@ -165,3 +180,38 @@ async def list_directory_team(
     ]
 
     return DirectoryTeamResponse(items=items, total=len(items))
+
+
+@router.get("/public-settings", response_model=PublicSettings)
+async def get_public_settings(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Returns the safe, public-facing subset of platform settings.
+    No authentication required — used by the landing page and directory.
+    """
+    result = await db.execute(select(PlatformSettings).where(PlatformSettings.id == 1))
+    settings = result.scalar_one_or_none()
+
+    if not settings:
+        # Return sensible defaults when settings haven't been configured yet
+        return PublicSettings(
+            agency_name="OakstrattonIMA",
+            primary_color="#7C5CFC",
+            accent_color="#22D3EE",
+        )
+
+    features = settings.features_config or {}
+
+    return PublicSettings(
+        agency_name=settings.agency_name,
+        agency_tagline=settings.agency_tagline,
+        agency_logo_url=settings.agency_logo_url,
+        primary_color=settings.primary_color,
+        accent_color=settings.accent_color,
+        support_email=settings.support_email,
+        terms_url=settings.terms_url,
+        privacy_url=settings.privacy_url,
+        landing_config=features.get("landing"),
+        footer_config=features.get("footer"),
+    )
