@@ -27,6 +27,16 @@ export default function InfluencerDetailPage() {
     },
   })
 
+  // Must be declared before any early returns to comply with Rules of Hooks
+  const statusMutation = useMutation({
+    mutationFn: (newStatus: string) => api.patch(`/influencers/${id}`, { status: newStatus }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['influencer', id] })
+      queryClient.invalidateQueries({ queryKey: ['influencers'] })
+      queryClient.invalidateQueries({ queryKey: ['directory-influencers'] })
+    },
+  })
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -39,15 +49,6 @@ export default function InfluencerDetailPage() {
     )
   }
 
-  const statusMutation = useMutation({
-    mutationFn: (newStatus: string) => api.patch(`/influencers/${id}`, { status: newStatus }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['influencer', id] })
-      queryClient.invalidateQueries({ queryKey: ['influencers'] })
-      queryClient.invalidateQueries({ queryKey: ['directory-influencers'] })
-    },
-  })
-
   if (!influencer) return <div>Influencer not found</div>
 
   const totalFollowers = influencer.social_accounts?.reduce(
@@ -55,7 +56,9 @@ export default function InfluencerDetailPage() {
   ) ?? 0
 
   const formatFollowers = (n: number) =>
-    n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : String(n)
+    n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
+    : n >= 1000 ? `${(n / 1000).toFixed(0)}K`
+    : String(n)
 
   return (
     <div className="space-y-6">
