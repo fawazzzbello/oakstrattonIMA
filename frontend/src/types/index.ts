@@ -395,8 +395,9 @@ export interface FeatureFlag {
   flag_name: string
   description: string | null
   is_enabled: boolean
-  enabled_for_roles: string[] | null
+  enabled_for_roles: Record<string, boolean> | string[] | null
   created_at: string
+  updated_at: string
 }
 
 export interface AuditLogEntry {
