@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Search, Plus, Loader2 } from 'lucide-react'
+import { Search, Plus, Loader2, CheckCircle } from 'lucide-react'
 import api from '@/utils/api'
 import type { Influencer, PaginatedResponse } from '@/types'
 import { Link } from 'react-router-dom'
 import Modal from '@/components/Modal'
+import { useAuthStore } from '@/store/authStore'
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-emerald-400/10 text-emerald-400',
@@ -16,7 +17,7 @@ const STATUS_COLORS: Record<string, string> = {
 const NICHES = ['fashion', 'beauty', 'fitness', 'food', 'travel', 'tech', 'gaming', 'lifestyle', 'parenting', 'finance', 'music', 'art']
 const PLATFORMS = ['instagram', 'tiktok', 'youtube', 'twitter', 'facebook', 'pinterest', 'linkedin']
 
-function InfluencerCard({ influencer }: { influencer: Influencer }) {
+function InfluencerCard({ influencer, onActivate }: { influencer: Influencer; onActivate?: () => void }) {
   const primaryAccount = influencer.social_accounts?.[0]
   const totalFollowers = influencer.social_accounts?.reduce(
     (sum, acc) => sum + (acc.follower_count || 0), 0
@@ -26,6 +27,7 @@ function InfluencerCard({ influencer }: { influencer: Influencer }) {
     n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : String(n)
 
   return (
+    <div className="flex flex-col">
     <Link
       to={`/app/influencers/${influencer.id}`}
       className="glass-card-hover p-5 block"
@@ -74,6 +76,15 @@ function InfluencerCard({ influencer }: { influencer: Influencer }) {
         </div>
       )}
     </Link>
+    {influencer.status === 'pending' && onActivate && (
+      <button
+        onClick={() => onActivate()}
+        className="mt-1 w-full text-xs flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 transition-colors font-medium"
+      >
+        <CheckCircle size={13} /> Activate Influencer
+      </button>
+    )}
+    </div>
   )
 }
 
@@ -85,11 +96,18 @@ const emptyForm = {
 
 export default function InfluencersPage() {
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const canManage = user?.role === 'admin' || user?.role === 'manager'
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [formError, setFormError] = useState('')
+
+  const activateMutation = useMutation({
+    mutationFn: (infId: number) => api.patch(`/influencers/${infId}`, { status: 'active' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['influencers'] }),
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ['influencers', statusFilter],
@@ -179,7 +197,13 @@ export default function InfluencersPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {(filtered ?? []).map((inf) => <InfluencerCard key={inf.id} influencer={inf} />)}
+          {(filtered ?? []).map((inf) => (
+            <InfluencerCard
+              key={inf.id}
+              influencer={inf}
+              onActivate={canManage ? () => activateMutation.mutate(inf.id) : undefined}
+            />
+          ))}
           {filtered?.length === 0 && (
             <div className="col-span-3 text-center py-16 text-muted-foreground">
               No influencers found. Add your first influencer to get started.
