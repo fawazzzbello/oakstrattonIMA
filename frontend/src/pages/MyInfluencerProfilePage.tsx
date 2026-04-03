@@ -32,7 +32,7 @@ function formatFollowers(n: number) {
 }
 
 export default function MyInfluencerProfilePage() {
-  const { user } = useAuthStore()
+  const { user, updateUser } = useAuthStore()
   const queryClient = useQueryClient()
   const influencerId = user?.influencer_id
 
@@ -98,22 +98,39 @@ export default function MyInfluencerProfilePage() {
     }))
   }
 
-  // No influencer profile linked yet
+  // No influencer profile linked yet — let them create one
+  const createProfileMutation = useMutation({
+    mutationFn: async () => {
+      await api.post('/influencers', {})
+      // Refresh /me so authStore picks up the new influencer_id
+      const { data: refreshed } = await api.get('/auth/me')
+      return refreshed
+    },
+    onSuccess: (refreshed) => {
+      updateUser(refreshed)
+    },
+  })
+
   if (!influencerId) {
     return (
       <div className="page-container">
         <div className="glass-card p-10 text-center max-w-lg mx-auto">
           <UserCheck size={48} className="text-muted-foreground mx-auto mb-4 opacity-40" />
           <h2 className="text-lg font-semibold mb-2">No influencer profile yet</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-            Your account hasn't been linked to an influencer profile. Please contact your agency manager to get set up.
+          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+            You don't have an influencer profile linked to your account. Create one now to appear in the public roster and receive campaign invitations.
           </p>
-          <a
-            href="mailto:hello@oakstratton.com"
-            className="btn-primary inline-flex items-center gap-2"
+          {createProfileMutation.isError && (
+            <p className="text-xs text-rose-400 mb-3">Failed to create profile. Please try again.</p>
+          )}
+          <button
+            onClick={() => createProfileMutation.mutate()}
+            disabled={createProfileMutation.isPending}
+            className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
           >
-            Contact Manager
-          </a>
+            {createProfileMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+            Create My Profile
+          </button>
         </div>
       </div>
     )

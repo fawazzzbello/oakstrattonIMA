@@ -44,6 +44,7 @@ export default function InfluencerDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['influencer', id] })
       queryClient.invalidateQueries({ queryKey: ['influencers'] })
+      queryClient.invalidateQueries({ queryKey: ['directory-influencers'] })
     },
   })
 

@@ -106,7 +106,10 @@ export default function InfluencersPage() {
 
   const activateMutation = useMutation({
     mutationFn: (infId: number) => api.patch(`/influencers/${infId}`, { status: 'active' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['influencers'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['influencers'] })
+      queryClient.invalidateQueries({ queryKey: ['directory-influencers'] })
+    },
   })
 
   const { data, isLoading } = useQuery({

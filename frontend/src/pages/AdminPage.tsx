@@ -99,7 +99,11 @@ function BrandingTab() {
 
   const updateMutation = useMutation({
     mutationFn: async (payload: Partial<PlatformSettings>) => { const { data } = await api.patch('/admin/settings', payload); return data },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-settings'] }); setSaved(true); setTimeout(() => setSaved(false), 3000) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-settings'] })
+      qc.invalidateQueries({ queryKey: ['public-settings'] })
+      setSaved(true); setTimeout(() => setSaved(false), 3000)
+    },
   })
 
   const current = { ...settings, ...form }
@@ -234,7 +238,11 @@ function LandingPageTab() {
       const { data } = await api.patch('/admin/settings', payload)
       return data
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-settings'] }); setSaved(true); setTimeout(() => setSaved(false), 3000) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-settings'] })
+      qc.invalidateQueries({ queryKey: ['public-settings'] })
+      setSaved(true); setTimeout(() => setSaved(false), 3000)
+    },
   })
 
   const addFooterLink = () => setFooterLinks((l) => [...l, { label: '', url: '' }])
@@ -385,9 +393,16 @@ function UsersTab() {
     },
   })
 
+  const invalidateUserRelated = () => {
+    qc.invalidateQueries({ queryKey: ['admin-users'] })
+    qc.invalidateQueries({ queryKey: ['admin-stats'] })
+    qc.invalidateQueries({ queryKey: ['directory-team'] })
+    qc.invalidateQueries({ queryKey: ['directory-influencers'] })
+  }
+
   const createMutation = useMutation({
     mutationFn: async () => { const { data } = await api.post('/admin/users', newUser); return data },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setShowAdd(false); setNewUser({ full_name: '', email: '', password: '', role: 'manager' }) },
+    onSuccess: () => { invalidateUserRelated(); setShowAdd(false); setNewUser({ full_name: '', email: '', password: '', role: 'manager' }) },
   })
 
   const updateMutation = useMutation({
@@ -395,12 +410,12 @@ function UsersTab() {
       const { data } = await api.patch(`/admin/users/${id}`, payload)
       return data
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); setEditUser(null) },
+    onSuccess: () => { invalidateUserRelated(); setEditUser(null) },
   })
 
   const deactivateMutation = useMutation({
     mutationFn: async (userId: number) => { const { data } = await api.delete(`/admin/users/${userId}`); return data },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+    onSuccess: () => invalidateUserRelated(),
   })
 
   const openEdit = (user: User) => {
@@ -482,7 +497,12 @@ function UsersTab() {
             </button>
             <button className="btn-ghost text-sm" onClick={() => setEditUser(null)}>Cancel</button>
           </div>
-          {updateMutation.isSuccess && <p className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" />User updated successfully</p>}
+          {updateMutation.isSuccess && (
+            <div className="space-y-1">
+              <p className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" />User updated successfully</p>
+              <p className="text-xs text-amber-400/80">Role or status changes take effect the next time the user signs in.</p>
+            </div>
+          )}
           {updateMutation.isError && <p className="text-xs text-rose-400">Failed to update user. Please try again.</p>}
         </div>
       )}
