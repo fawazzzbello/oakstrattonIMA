@@ -66,6 +66,8 @@ async def register(
         hashed_password=get_password_hash(payload.password),
         full_name=payload.full_name,
         role=UserRole.CLIENT,
+        phone=getattr(payload, "phone", None),
+        timezone=getattr(payload, "timezone", "UTC"),
     )
     db.add(user)
     await db.commit()
