@@ -1,17 +1,23 @@
 import type { ElementType } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Instagram, Youtube, Globe, MapPin, Star } from 'lucide-react'
 import api from '@/utils/api'
 import type { Influencer } from '@/types'
+import { useAuthStore } from '@/store/authStore'
 
 const PLATFORM_ICONS: Record<string, ElementType> = {
   instagram: Instagram,
   youtube: Youtube,
 }
 
+const STATUS_OPTIONS = ['active', 'pending', 'inactive', 'suspended'] as const
+
 export default function InfluencerDetailPage() {
   const { id } = useParams()
+  const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const canManage = user?.role === 'admin' || user?.role === 'manager'
 
   const { data: influencer, isLoading } = useQuery({
     queryKey: ['influencer', id],
@@ -32,6 +38,14 @@ export default function InfluencerDetailPage() {
       </div>
     )
   }
+
+  const statusMutation = useMutation({
+    mutationFn: (newStatus: string) => api.patch(`/influencers/${id}`, { status: newStatus }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['influencer', id] })
+      queryClient.invalidateQueries({ queryKey: ['influencers'] })
+    },
+  })
 
   if (!influencer) return <div>Influencer not found</div>
 
@@ -58,14 +72,32 @@ export default function InfluencerDetailPage() {
             <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-2xl mb-4">
               {String(influencer.user_id).slice(-2)}
             </div>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium mb-3 ${
-              influencer.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' :
-              influencer.status === 'pending' ? 'bg-amber-400/10 text-amber-400' :
-              influencer.status === 'suspended' ? 'bg-rose-400/10 text-rose-400' :
-              'bg-slate-400/10 text-slate-400'
-            }`}>
-              {influencer.status}
-            </span>
+            {canManage ? (
+              <select
+                value={influencer.status}
+                onChange={(e) => statusMutation.mutate(e.target.value)}
+                disabled={statusMutation.isPending}
+                className={`text-xs px-2.5 py-1 rounded-full font-medium mb-3 border-0 cursor-pointer appearance-none text-center disabled:opacity-60 ${
+                  influencer.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' :
+                  influencer.status === 'pending' ? 'bg-amber-400/10 text-amber-400' :
+                  influencer.status === 'suspended' ? 'bg-rose-400/10 text-rose-400' :
+                  'bg-slate-400/10 text-slate-400'
+                }`}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s} className="bg-card text-foreground capitalize">{s}</option>
+                ))}
+              </select>
+            ) : (
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium mb-3 ${
+                influencer.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' :
+                influencer.status === 'pending' ? 'bg-amber-400/10 text-amber-400' :
+                influencer.status === 'suspended' ? 'bg-rose-400/10 text-rose-400' :
+                'bg-slate-400/10 text-slate-400'
+              }`}>
+                {influencer.status}
+              </span>
+            )}
             {influencer.location && (
               <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
                 <MapPin size={13} />

@@ -74,6 +74,10 @@ async def create_influencer(
 
     data = payload.model_dump(exclude_unset=True)
     data.pop("user_id", None)  # remove if present in data dict
+    # Default to ACTIVE so influencers appear in the public directory immediately.
+    # Managers can explicitly pass status=pending to hold for approval.
+    if "status" not in data:
+        data["status"] = InfluencerStatus.ACTIVE
     influencer = Influencer(user_id=target_user_id, **data)
     db.add(influencer)
     await db.commit()
