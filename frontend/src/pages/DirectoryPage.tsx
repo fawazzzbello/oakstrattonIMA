@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
-  Search, Instagram, Youtube, Globe, MapPin, Users, Shield,
+  Search, Instagram, Youtube, Globe, MapPin, Users,
   Briefcase, ArrowRight, Loader2,
 } from 'lucide-react'
 import api from '@/utils/api'
@@ -126,20 +126,17 @@ function InfluencerCard({ inf }: { inf: PublicInfluencerCard }) {
 
 function TeamCard({ member }: { member: PublicTeamMember }) {
   const initials = member.full_name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
-  const isAdmin = member.role === 'admin'
 
   return (
     <div className="glass-card-hover p-5 flex flex-col items-center text-center gap-3">
-      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500/20 to-rose-500/20 flex items-center justify-center text-foreground font-bold text-lg border border-border/40">
+      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500/20 to-cyan-500/20 flex items-center justify-center text-foreground font-bold text-lg border border-border/40">
         {initials}
       </div>
       <div>
         <h3 className="font-semibold text-foreground">{member.full_name}</h3>
-        <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-medium mt-1.5 ${
-          isAdmin ? 'bg-rose-400/10 text-rose-400' : 'bg-violet-400/10 text-violet-400'
-        }`}>
-          {isAdmin ? <Shield size={10} /> : <Briefcase size={10} />}
-          {isAdmin ? 'Admin' : 'Manager'}
+        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-medium mt-1.5 bg-violet-400/10 text-violet-400">
+          <Briefcase size={10} />
+          Manager
         </span>
       </div>
       <p className="text-xs text-muted-foreground">

@@ -161,7 +161,7 @@ async def list_directory_team(
     result = await db.execute(
         select(User)
         .where(
-            User.role.in_([UserRole.MANAGER, UserRole.ADMIN]),
+            User.role == UserRole.MANAGER,
             User.is_active == True,
         )
         .order_by(User.created_at.asc())
