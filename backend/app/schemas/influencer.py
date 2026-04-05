@@ -83,6 +83,12 @@ class InfluencerResponse(InfluencerBase):
     avg_engagement_rate: Optional[float] = None
     primary_platform: Optional[str] = None
 
+    # AI-generated fields
+    ai_generated: bool = False
+    physical_attributes: Optional[dict] = None
+    portfolio_images: Optional[list] = None
+    appearance_prompt: Optional[str] = None
+
     model_config = {"from_attributes": True}
 
 

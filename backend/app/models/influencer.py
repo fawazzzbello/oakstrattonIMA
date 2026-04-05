@@ -73,6 +73,12 @@ class Influencer(Base, TimestampMixin):
     agency_notes: Mapped[Optional[str]] = mapped_column(Text)
     trust_score: Mapped[Optional[float]] = mapped_column(Numeric(4, 2))  # 0.00-10.00
 
+    # AI-generated influencer fields
+    ai_generated: Mapped[bool] = mapped_column(Boolean, default=False)
+    physical_attributes: Mapped[Optional[dict]] = mapped_column(JSON)     # height, hair, eyes, etc.
+    portfolio_images: Mapped[Optional[list]] = mapped_column(JSON)        # [{url, caption, image_type}]
+    appearance_prompt: Mapped[Optional[str]] = mapped_column(Text)        # stable prompt for image gen
+
     # Relationships
     user: Mapped["User"] = relationship(back_populates="influencer_profile")
     social_accounts: Mapped[List["SocialAccount"]] = relationship(back_populates="influencer")

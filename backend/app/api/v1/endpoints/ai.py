@@ -1,12 +1,21 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
-from app.core.deps import get_db, require_manager
-from app.models.user import User
+from app.core.deps import get_db, require_manager, require_admin
+from app.core.security import get_password_hash
+from app.models.user import User, UserRole
+from app.models.influencer import Influencer, InfluencerStatus
+from app.models.social_account import SocialAccount
 from app.models.ai_result import AIAnalysis, AIInsightReport, AIChatSession, AIChatMessage
+from app.services.audit import log_action
 from app.schemas.ai import (
+    GenerateInfluencerRequest,
+    GenerateInfluencerResponse,
+    PortfolioImage,
     InfluencerMatchRequest,
     InfluencerMatchResponse,
     InfluencerMatchResult,
@@ -373,3 +382,136 @@ async def archive_chat_session(
 
     session.is_active = False
     await db.commit()
+
+
+# ---- AI Influencer Generation ----
+
+@router.post("/generate-influencer", response_model=GenerateInfluencerResponse, status_code=201)
+async def generate_influencer(
+    data: GenerateInfluencerRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    _check_ai_configured()
+    from app.services.ai.profile_generator import generate_influencer_profile
+
+    # 1. Generate profile via Claude
+    profile = await generate_influencer_profile(
+        gender=data.gender,
+        age_range=data.age_range,
+        niche=data.niche,
+        ethnicity=data.ethnicity,
+        extra_instructions=data.extra_instructions,
+    )
+
+    ai_meta = profile.pop("_ai_meta", {})
+
+    # 2. Create synthetic user account
+    first_name = profile.get("first_name", "AI")
+    last_name = profile.get("last_name", "Model")
+    unique_id = uuid.uuid4().hex[:12]
+    email = f"ai.generated.{unique_id}@oakstrattonima.internal"
+
+    user = User(
+        email=email,
+        full_name=f"{first_name} {last_name}",
+        hashed_password=get_password_hash(uuid.uuid4().hex),
+        role=UserRole.INFLUENCER,
+        is_active=True,
+    )
+    db.add(user)
+    await db.flush()
+
+    # 3. Create influencer record
+    rates = profile.get("rates", {})
+    demographics = profile.get("audience_demographics", {})
+
+    influencer = Influencer(
+        user_id=user.id,
+        status=InfluencerStatus.ACTIVE,
+        bio=profile.get("bio"),
+        location=profile.get("location"),
+        country_code=profile.get("country_code"),
+        language=profile.get("language", "en"),
+        niches=profile.get("niches", []),
+        tags=profile.get("tags", []),
+        ai_generated=True,
+        physical_attributes=profile.get("physical_attributes"),
+        portfolio_images=profile.get("portfolio_images", []),
+        appearance_prompt=profile.get("appearance_prompt"),
+        rate_per_post=rates.get("rate_per_post"),
+        rate_per_story=rates.get("rate_per_story"),
+        rate_per_reel=rates.get("rate_per_reel"),
+        rate_per_video=rates.get("rate_per_video"),
+        audience_age_18_24=demographics.get("age_18_24"),
+        audience_age_25_34=demographics.get("age_25_34"),
+        audience_age_35_44=demographics.get("age_35_44"),
+        audience_age_45_plus=demographics.get("age_45_plus"),
+        audience_gender_female=demographics.get("gender_female"),
+        audience_gender_male=demographics.get("gender_male"),
+        audience_top_countries=demographics.get("top_countries", []),
+    )
+    db.add(influencer)
+    await db.flush()
+
+    # 4. Create social accounts
+    social_count = 0
+    for acct in profile.get("social_accounts", []):
+        sa = SocialAccount(
+            influencer_id=influencer.id,
+            platform=acct.get("platform", "instagram"),
+            username=acct.get("username", ""),
+            follower_count=acct.get("follower_count", 0),
+            following_count=acct.get("following_count", 0),
+            post_count=acct.get("post_count", 0),
+            engagement_rate=acct.get("engagement_rate", 0.0),
+            is_verified=acct.get("is_verified", False),
+            is_primary=acct.get("is_primary", False),
+        )
+        db.add(sa)
+        social_count += 1
+
+    # 5. Log the AI analysis
+    analysis = AIAnalysis(
+        analysis_type="influencer_generation",
+        requested_by_id=current_user.id,
+        subject_type="influencer",
+        subject_id=influencer.id,
+        model_used=ai_meta.get("model", settings.AI_MODEL),
+        prompt_tokens=ai_meta.get("input_tokens"),
+        completion_tokens=ai_meta.get("output_tokens"),
+        result_json={"influencer_id": influencer.id, "user_id": user.id},
+    )
+    db.add(analysis)
+
+    await log_action(db, current_user.id, "generate_ai_influencer", "influencer", influencer.id, {
+        "full_name": f"{first_name} {last_name}",
+        "niches": profile.get("niches", []),
+    })
+
+    await db.commit()
+
+    portfolio_images = [
+        PortfolioImage(
+            url=img.get("url", ""),
+            caption=img.get("caption", ""),
+            image_type=img.get("image_type", "portrait"),
+            setting=img.get("setting"),
+            mood=img.get("mood"),
+        )
+        for img in profile.get("portfolio_images", [])
+    ]
+
+    return GenerateInfluencerResponse(
+        influencer_id=influencer.id,
+        user_id=user.id,
+        full_name=f"{first_name} {last_name}",
+        bio=profile.get("bio"),
+        location=profile.get("location"),
+        niches=profile.get("niches", []),
+        physical_attributes=profile.get("physical_attributes"),
+        appearance_prompt=profile.get("appearance_prompt"),
+        portfolio_images=portfolio_images,
+        social_accounts_created=social_count,
+        model_used=ai_meta.get("model", "unknown"),
+    )

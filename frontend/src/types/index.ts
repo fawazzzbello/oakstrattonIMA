@@ -56,6 +56,14 @@ export interface SocialAccount {
   metrics_updated_at?: string
 }
 
+export interface PortfolioImage {
+  url: string
+  caption: string
+  image_type: string
+  setting?: string
+  mood?: string
+}
+
 export interface Influencer {
   id: number
   user_id: number
@@ -76,8 +84,34 @@ export interface Influencer {
   total_followers?: number
   avg_engagement_rate?: number
   primary_platform?: string
+  ai_generated?: boolean
+  physical_attributes?: Record<string, any>
+  portfolio_images?: PortfolioImage[]
+  appearance_prompt?: string
   created_at: string
   updated_at: string
+}
+
+export interface GenerateInfluencerRequest {
+  gender?: string
+  age_range?: string
+  niche?: string
+  ethnicity?: string
+  extra_instructions?: string
+}
+
+export interface GenerateInfluencerResponse {
+  influencer_id: number
+  user_id: number
+  full_name: string
+  bio?: string
+  location?: string
+  niches: string[]
+  physical_attributes?: Record<string, any>
+  appearance_prompt?: string
+  portfolio_images: PortfolioImage[]
+  social_accounts_created: number
+  model_used: string
 }
 
 // --- Client ---

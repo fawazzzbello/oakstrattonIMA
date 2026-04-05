@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Search, Plus, Loader2, CheckCircle } from 'lucide-react'
+import { Search, Plus, Loader2, CheckCircle, Sparkles } from 'lucide-react'
 import api from '@/utils/api'
-import type { Influencer, PaginatedResponse } from '@/types'
-import { Link } from 'react-router-dom'
+import type { Influencer, PaginatedResponse, GenerateInfluencerRequest, GenerateInfluencerResponse } from '@/types'
+import { Link, useNavigate } from 'react-router-dom'
 import Modal from '@/components/Modal'
 import { useAuthStore } from '@/store/authStore'
 
@@ -42,6 +42,11 @@ function InfluencerCard({ influencer, onActivate }: { influencer: Influencer; on
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[influencer.status] ?? ''}`}>
               {influencer.status}
             </span>
+            {influencer.ai_generated && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-violet-400/10 text-violet-400 flex items-center gap-0.5">
+                <Sparkles size={10} /> AI
+              </span>
+            )}
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
             {influencer.location ?? influencer.country_code ?? 'Unknown location'}
@@ -94,13 +99,30 @@ const emptyForm = {
   rate_per_post: '', rate_per_story: '', currency: 'USD',
 }
 
+const GENDERS = ['male', 'female', 'non-binary']
+const AGE_RANGES = ['18-25', '25-35', '35-45']
+const AI_NICHES = ['fashion', 'beauty', 'fitness', 'food', 'travel', 'tech', 'gaming', 'lifestyle', 'business', 'education', 'entertainment', 'health', 'sports']
+
+const emptyAIForm: GenerateInfluencerRequest = {
+  gender: undefined,
+  age_range: undefined,
+  niche: undefined,
+  ethnicity: undefined,
+  extra_instructions: undefined,
+}
+
 export default function InfluencersPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { user } = useAuthStore()
-  const canManage = user?.role === 'admin' || user?.role === 'manager'
+  const isAdmin = user?.role === 'admin'
+  const canManage = isAdmin || user?.role === 'manager'
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [showAIModal, setShowAIModal] = useState(false)
+  const [aiForm, setAIForm] = useState(emptyAIForm)
+  const [aiError, setAIError] = useState('')
   const [form, setForm] = useState(emptyForm)
   const [formError, setFormError] = useState('')
 
@@ -110,6 +132,22 @@ export default function InfluencersPage() {
       queryClient.invalidateQueries({ queryKey: ['influencers'] })
       queryClient.invalidateQueries({ queryKey: ['directory-influencers'] })
     },
+  })
+
+  const aiGenerateMutation = useMutation({
+    mutationFn: async (req: GenerateInfluencerRequest) => {
+      const { data } = await api.post<GenerateInfluencerResponse>('/ai/generate-influencer', req)
+      return data
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['influencers'] })
+      queryClient.invalidateQueries({ queryKey: ['directory-influencers'] })
+      setShowAIModal(false)
+      setAIForm(emptyAIForm)
+      setAIError('')
+      navigate(`/app/influencers/${result.influencer_id}`)
+    },
+    onError: (e: any) => setAIError(e?.response?.data?.detail ?? 'AI generation failed. Please try again.'),
   })
 
   const { data, isLoading } = useQuery({
@@ -171,9 +209,16 @@ export default function InfluencersPage() {
           <h1 className="page-title">Influencers</h1>
           <p className="page-subtitle">{data?.total ?? 0} influencers in your roster</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
-          <Plus size={16} /> Add Influencer
-        </button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <button onClick={() => setShowAIModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 transition-colors font-medium text-sm">
+              <Sparkles size={16} /> AI Generate
+            </button>
+          )}
+          <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
+            <Plus size={16} /> Add Influencer
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3 flex-wrap">
@@ -214,6 +259,72 @@ export default function InfluencersPage() {
           )}
         </div>
       )}
+
+      {/* AI Generate Modal */}
+      <Modal open={showAIModal} onClose={() => { setShowAIModal(false); setAIError('') }} title="Generate AI Influencer">
+        <form onSubmit={(e) => { e.preventDefault(); aiGenerateMutation.mutate(aiForm) }} className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Generate a complete AI influencer profile with social accounts, portfolio images, and demographics. Optionally specify preferences below.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Gender</label>
+              <select value={aiForm.gender ?? ''} onChange={(e) => setAIForm(f => ({ ...f, gender: e.target.value || undefined }))} className="input-field w-full">
+                <option value="">Any</option>
+                {GENDERS.map(g => <option key={g} value={g} className="capitalize">{g}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Age Range</label>
+              <select value={aiForm.age_range ?? ''} onChange={(e) => setAIForm(f => ({ ...f, age_range: e.target.value || undefined }))} className="input-field w-full">
+                <option value="">Any</option>
+                {AGE_RANGES.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Primary Niche</label>
+            <select value={aiForm.niche ?? ''} onChange={(e) => setAIForm(f => ({ ...f, niche: e.target.value || undefined }))} className="input-field w-full">
+              <option value="">Any</option>
+              {AI_NICHES.map(n => <option key={n} value={n} className="capitalize">{n}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Ethnicity (optional)</label>
+            <input
+              value={aiForm.ethnicity ?? ''}
+              onChange={(e) => setAIForm(f => ({ ...f, ethnicity: e.target.value || undefined }))}
+              placeholder="e.g. East Asian, Scandinavian..."
+              className="input-field w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Extra Creative Direction (optional)</label>
+            <textarea
+              value={aiForm.extra_instructions ?? ''}
+              onChange={(e) => setAIForm(f => ({ ...f, extra_instructions: e.target.value || undefined }))}
+              rows={2}
+              placeholder="e.g. edgy street style, luxury aesthetic, outdoorsy..."
+              className="input-field w-full resize-none"
+            />
+          </div>
+
+          {aiError && (
+            <p className="text-destructive text-sm bg-destructive/10 px-3 py-2 rounded-lg">{aiError}</p>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={() => setShowAIModal(false)} className="btn-secondary flex-1">Cancel</button>
+            <button type="submit" disabled={aiGenerateMutation.isPending} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors font-medium text-sm disabled:opacity-50">
+              {aiGenerateMutation.isPending ? <><Loader2 size={16} className="animate-spin" /> Generating...</> : <><Sparkles size={16} /> Generate Influencer</>}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal open={showModal} onClose={() => { setShowModal(false); setFormError('') }} title="Add Influencer">
         <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }} className="space-y-4">
