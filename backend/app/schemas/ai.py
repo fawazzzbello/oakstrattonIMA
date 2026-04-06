@@ -111,3 +111,35 @@ class ChatSessionResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# --- AI Influencer Generation ---
+
+class GenerateInfluencerRequest(BaseModel):
+    gender: Optional[str] = None            # male, female, non-binary
+    age_range: Optional[str] = None         # e.g. "18-25", "25-35"
+    niche: Optional[str] = None             # primary niche
+    ethnicity: Optional[str] = None         # optional ethnicity preference
+    extra_instructions: Optional[str] = None  # freeform creative direction
+
+
+class PortfolioImage(BaseModel):
+    url: str
+    caption: str
+    image_type: str
+    setting: Optional[str] = None
+    mood: Optional[str] = None
+
+
+class GenerateInfluencerResponse(BaseModel):
+    influencer_id: int
+    user_id: int
+    full_name: str
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    niches: list[str] = []
+    physical_attributes: Optional[dict] = None
+    appearance_prompt: Optional[str] = None
+    portfolio_images: list[PortfolioImage] = []
+    social_accounts_created: int = 0
+    model_used: str

@@ -1,7 +1,7 @@
-import type { ElementType } from 'react'
+import { type ElementType, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Instagram, Youtube, Globe, MapPin, Star } from 'lucide-react'
+import { ArrowLeft, Instagram, Youtube, Globe, MapPin, Star, Sparkles, X } from 'lucide-react'
 import api from '@/utils/api'
 import type { Influencer } from '@/types'
 import { useAuthStore } from '@/store/authStore'
@@ -18,6 +18,7 @@ export default function InfluencerDetailPage() {
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const canManage = user?.role === 'admin' || user?.role === 'manager'
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
 
   const { data: influencer, isLoading } = useQuery({
     queryKey: ['influencer', id],
@@ -100,6 +101,11 @@ export default function InfluencerDetailPage() {
                 'bg-slate-400/10 text-slate-400'
               }`}>
                 {influencer.status}
+              </span>
+            )}
+            {influencer.ai_generated && (
+              <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium mb-2 bg-violet-400/10 text-violet-400">
+                <Sparkles size={11} /> AI Generated
               </span>
             )}
             {influencer.location && (
@@ -195,6 +201,102 @@ export default function InfluencerDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Physical Attributes (AI-generated influencers) */}
+      {influencer.ai_generated && influencer.physical_attributes && (
+        <div className="bg-card rounded-xl border border-border p-6">
+          <h2 className="font-semibold mb-4 flex items-center gap-2">
+            <Sparkles size={16} className="text-violet-400" /> Physical Attributes
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {Object.entries(influencer.physical_attributes).map(([key, val]) => (
+              <div key={key} className="bg-muted/50 rounded-lg p-3">
+                <div className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</div>
+                <div className="text-sm font-medium mt-0.5">{String(val) || '—'}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Portfolio Gallery */}
+      {influencer.portfolio_images && influencer.portfolio_images.length > 0 && (
+        <div className="bg-card rounded-xl border border-border p-6">
+          <h2 className="font-semibold mb-4">
+            Portfolio ({influencer.portfolio_images.length} images)
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {influencer.portfolio_images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => setLightboxIdx(idx)}
+                className="group relative aspect-[3/4] rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-colors"
+              >
+                <img
+                  src={img.url}
+                  alt={img.caption}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                  <p className="text-xs text-white font-medium truncate">{img.caption}</p>
+                  <div className="flex gap-1 mt-0.5">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/20 text-white capitalize">{img.image_type}</span>
+                    {img.mood && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-400/30 text-violet-200 capitalize">{img.mood}</span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxIdx !== null && influencer.portfolio_images && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightboxIdx(null)}
+        >
+          <button
+            onClick={() => setLightboxIdx(null)}
+            className="absolute top-4 right-4 text-white/70 hover:text-white p-2"
+          >
+            <X size={24} />
+          </button>
+          <div className="max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={influencer.portfolio_images[lightboxIdx].url}
+              alt={influencer.portfolio_images[lightboxIdx].caption}
+              className="w-full rounded-lg"
+            />
+            <div className="mt-3 text-center">
+              <p className="text-white font-medium">{influencer.portfolio_images[lightboxIdx].caption}</p>
+              {influencer.portfolio_images[lightboxIdx].setting && (
+                <p className="text-white/60 text-sm mt-1">{influencer.portfolio_images[lightboxIdx].setting}</p>
+              )}
+              <div className="flex justify-center gap-2 mt-2">
+                <button
+                  onClick={() => setLightboxIdx(Math.max(0, lightboxIdx - 1))}
+                  disabled={lightboxIdx === 0}
+                  className="px-3 py-1 rounded bg-white/10 text-white text-sm disabled:opacity-30 hover:bg-white/20"
+                >
+                  Prev
+                </button>
+                <span className="text-white/50 text-sm py-1">{lightboxIdx + 1} / {influencer.portfolio_images.length}</span>
+                <button
+                  onClick={() => setLightboxIdx(Math.min(influencer.portfolio_images!.length - 1, lightboxIdx + 1))}
+                  disabled={lightboxIdx === influencer.portfolio_images.length - 1}
+                  className="px-3 py-1 rounded bg-white/10 text-white text-sm disabled:opacity-30 hover:bg-white/20"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
