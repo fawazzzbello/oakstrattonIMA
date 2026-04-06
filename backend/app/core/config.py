@@ -59,10 +59,19 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
 
-    # AI (Anthropic)
-    ANTHROPIC_API_KEY: Optional[str] = None
-    AI_MODEL: str = "claude-sonnet-4-6"
+    # AI — provider selection
+    AI_PROVIDER: str = "claude"          # claude | gemini | openai
     AI_MAX_TOKENS: int = 4096
+
+    # Anthropic / Claude
+    ANTHROPIC_API_KEY: Optional[str] = None
+    AI_MODEL: str = "claude-sonnet-4-6"  # default Claude model
+
+    # Google / Gemini
+    GEMINI_API_KEY: Optional[str] = None
+
+    # OpenAI / GPT (optional — install `openai` package separately)
+    OPENAI_API_KEY: Optional[str] = None
 
     # Frontend URL (for email links)
     FRONTEND_URL: str = "http://localhost:5173"

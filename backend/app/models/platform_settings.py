@@ -26,6 +26,7 @@ class PlatformSettings(Base, TimestampMixin):
     custom_css: Mapped[Optional[str]] = mapped_column(Text)
     features_config: Mapped[Optional[dict]] = mapped_column(JSON)
     max_ai_requests_per_day: Mapped[int] = mapped_column(Integer, default=500)
+    ai_provider_override: Mapped[Optional[str]] = mapped_column(String(50))   # claude | gemini | openai
     ai_model_override: Mapped[Optional[str]] = mapped_column(String(100))
 
 

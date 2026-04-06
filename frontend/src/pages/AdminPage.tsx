@@ -5,10 +5,11 @@ import {
   Loader2, CheckCircle2, Trash2, Plus, Edit3,
   Lock, Globe, Palette, ToggleLeft, ToggleRight,
   Activity, Megaphone, UserCheck, DollarSign, Image, Layout, Link2,
+  Sparkles, CheckCircle, XCircle, ChevronDown,
 } from 'lucide-react'
 import api from '@/utils/api'
 import { useAuthStore } from '@/store/authStore'
-import type { PlatformSettings, FeatureFlag, AuditLogEntry, AdminStats, User, FooterLink, SocialLink, LandingStatItem, PlatformFeaturesConfig } from '@/types'
+import type { PlatformSettings, FeatureFlag, AuditLogEntry, AdminStats, User, FooterLink, SocialLink, LandingStatItem, PlatformFeaturesConfig, AIProvidersResponse, AIProviderInfo } from '@/types'
 import { format } from 'date-fns'
 
 // ── Overview Tab ─────────────────────────────────────────────────────────
@@ -721,6 +722,196 @@ function AuditLogsTab() {
 }
 
 // ── Main Page ────────────────────────────────────────────────────────────
+// ── AI Engine Tab ─────────────────────────────────────────────────────────
+function AIEngineTab() {
+  const qc = useQueryClient()
+  const [saved, setSaved] = useState(false)
+  const [selectedProvider, setSelectedProvider] = useState<string>('')
+  const [selectedModel, setSelectedModel] = useState<string>('')
+  const [initialized, setInitialized] = useState(false)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-ai-providers'],
+    queryFn: async () => {
+      const { data } = await api.get<AIProvidersResponse>('/admin/ai-providers')
+      return data
+    },
+  })
+
+  // Initialize local state from server data once
+  if (!isLoading && !initialized && data) {
+    setSelectedProvider(data.active_provider)
+    setSelectedModel(data.active_model)
+    setInitialized(true)
+  }
+
+  const activeProviderInfo = data?.providers.find(p => p.id === selectedProvider)
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const { data: result } = await api.patch('/admin/settings', {
+        ai_provider_override: selectedProvider,
+        ai_model_override: selectedModel,
+      })
+      return result
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-ai-providers'] })
+      qc.invalidateQueries({ queryKey: ['admin-settings'] })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    },
+  })
+
+  const handleProviderChange = (pid: string) => {
+    setSelectedProvider(pid)
+    const info = data?.providers.find(p => p.id === pid)
+    if (info) setSelectedModel(info.default_model)
+  }
+
+  const PROVIDER_ICONS: Record<string, string> = {
+    claude: '🧠',
+    gemini: '♊',
+    openai: '🤖',
+  }
+
+  const PROVIDER_COLORS: Record<string, string> = {
+    claude: 'border-violet-500/40 bg-violet-500/10',
+    gemini: 'border-cyan-500/40 bg-cyan-500/10',
+    openai: 'border-emerald-500/40 bg-emerald-500/10',
+  }
+
+  const PROVIDER_TEXT: Record<string, string> = {
+    claude: 'text-violet-400',
+    gemini: 'text-cyan-400',
+    openai: 'text-emerald-400',
+  }
+
+  if (isLoading) return <div className="glass-card p-8 animate-pulse h-64" />
+
+  return (
+    <div className="space-y-6">
+      {/* Provider Cards */}
+      <div className="glass-card p-6 space-y-5">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-violet-400" /> AI Engine Selection
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Choose which AI provider powers all platform features — influencer matching, brief generation, content analysis, and AI-generated profiles.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {data?.providers.map((provider: AIProviderInfo) => {
+            const isSelected = selectedProvider === provider.id
+            const icon = PROVIDER_ICONS[provider.id] ?? '🤖'
+            const colorBorder = isSelected ? PROVIDER_COLORS[provider.id] : 'border-border bg-muted/20'
+            const textColor = PROVIDER_TEXT[provider.id] ?? 'text-foreground'
+
+            return (
+              <button
+                key={provider.id}
+                onClick={() => provider.is_configured && handleProviderChange(provider.id)}
+                disabled={!provider.is_configured}
+                className={`relative text-left p-4 rounded-xl border-2 transition-all duration-200 ${colorBorder} ${
+                  provider.is_configured ? 'cursor-pointer hover:border-opacity-70' : 'opacity-50 cursor-not-allowed'
+                } ${isSelected ? 'ring-2 ring-offset-2 ring-offset-background ring-primary/30' : ''}`}
+              >
+                {isSelected && (
+                  <span className="absolute top-2 right-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">
+                    Active
+                  </span>
+                )}
+                <div className="text-2xl mb-2">{icon}</div>
+                <div className={`font-semibold text-sm ${isSelected ? textColor : 'text-foreground'}`}>
+                  {provider.name}
+                </div>
+                <div className="flex items-center gap-1.5 mt-2">
+                  {provider.is_configured ? (
+                    <><CheckCircle className="h-3.5 w-3.5 text-emerald-400" /><span className="text-xs text-emerald-400">Configured</span></>
+                  ) : (
+                    <><XCircle className="h-3.5 w-3.5 text-rose-400" /><span className="text-xs text-rose-400">No API key</span></>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {provider.models.length} model{provider.models.length !== 1 ? 's' : ''} available
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Model Selection */}
+      {activeProviderInfo && (
+        <div className="glass-card p-6 space-y-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <ChevronDown className="h-4 w-4 text-cyan-400" /> Model Version
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Select the specific model version for <span className="text-foreground font-medium">{activeProviderInfo.name}</span>.
+            More capable models produce better results but may be slower or more expensive.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {activeProviderInfo.models.map((m: string) => (
+              <button
+                key={m}
+                onClick={() => setSelectedModel(m)}
+                className={`text-left p-3 rounded-lg border transition-colors ${
+                  selectedModel === m
+                    ? 'border-primary/50 bg-primary/10 text-primary'
+                    : 'border-border bg-muted/20 text-muted-foreground hover:border-primary/20 hover:text-foreground'
+                }`}
+              >
+                <div className="font-mono text-xs font-medium">{m}</div>
+                {m === activeProviderInfo.default_model && (
+                  <div className="text-[10px] mt-1 text-muted-foreground">Recommended</div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Daily Limit */}
+      <div className="glass-card p-6 space-y-4">
+        <h3 className="text-sm font-semibold">Active Configuration</h3>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="bg-muted/40 rounded-lg p-3">
+            <div className="text-xs text-muted-foreground mb-1">Provider</div>
+            <div className="font-medium capitalize">{selectedProvider || '—'}</div>
+          </div>
+          <div className="bg-muted/40 rounded-lg p-3">
+            <div className="text-xs text-muted-foreground mb-1">Model</div>
+            <div className="font-mono text-xs font-medium truncate">{selectedModel || '—'}</div>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Changes apply immediately on the current server process. On multi-worker deployments, all workers reload the config from the database on their next startup.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          className="btn-primary flex items-center gap-2 disabled:opacity-50"
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending || !selectedProvider || !selectedModel}
+        >
+          {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          Save AI Engine
+        </button>
+        {saved && (
+          <span className="text-sm text-emerald-400 flex items-center gap-1">
+            <CheckCircle2 className="h-4 w-4" /> AI engine updated
+          </span>
+        )}
+        {saveMutation.isError && (
+          <span className="text-sm text-rose-400">Failed to save. Please try again.</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState('overview')
@@ -741,6 +932,7 @@ export default function AdminPage() {
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'branding', label: 'Branding', icon: Palette },
     { id: 'landing', label: 'Landing Page', icon: Layout },
+    { id: 'ai-engine', label: 'AI Engine', icon: Sparkles },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'flags', label: 'Feature Flags', icon: Flag },
     { id: 'audit', label: 'Audit Logs', icon: ScrollText },
@@ -770,6 +962,7 @@ export default function AdminPage() {
       {activeTab === 'overview' && <OverviewTab />}
       {activeTab === 'branding' && <BrandingTab />}
       {activeTab === 'landing' && <LandingPageTab />}
+      {activeTab === 'ai-engine' && <AIEngineTab />}
       {activeTab === 'users' && <UsersTab />}
       {activeTab === 'flags' && <FeatureFlagsTab />}
       {activeTab === 'audit' && <AuditLogsTab />}
