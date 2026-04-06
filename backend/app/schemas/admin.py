@@ -23,6 +23,7 @@ class PlatformSettingsResponse(BaseModel):
     custom_css: Optional[str] = None
     features_config: Optional[dict] = None
     max_ai_requests_per_day: int
+    ai_provider_override: Optional[str] = None
     ai_model_override: Optional[str] = None
     created_at: datetime
     updated_at: datetime
@@ -46,6 +47,7 @@ class PlatformSettingsUpdate(BaseModel):
     custom_css: Optional[str] = None
     features_config: Optional[dict] = None
     max_ai_requests_per_day: Optional[int] = None
+    ai_provider_override: Optional[str] = None
     ai_model_override: Optional[str] = None
 
 

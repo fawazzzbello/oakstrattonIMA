@@ -82,7 +82,54 @@ async def update_settings(
         after_state=update_data,
     )
     await db.commit()
+
+    # Apply to running AI client so changes take effect immediately (single-worker)
+    if "ai_provider_override" in update_data or "ai_model_override" in update_data:
+        from app.services.ai.client import ai_client, PROVIDER_CATALOGUE
+        new_provider = settings.ai_provider_override or ai_client.active_provider
+        new_model = settings.ai_model_override or ai_client.active_model
+        try:
+            ai_client.configure(new_provider, new_model)
+        except ValueError:
+            pass  # invalid provider saved — keep existing active config
+
     return settings
+
+
+# ---- AI Provider Management ----
+
+@router.get("/ai-providers")
+async def get_ai_providers(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Return available AI providers, their models, and the currently active config."""
+    from app.services.ai.client import ai_client, PROVIDER_CATALOGUE
+
+    # Fetch platform overrides from DB
+    result = await db.execute(select(PlatformSettings).where(PlatformSettings.id == 1))
+    ps = result.scalar_one_or_none()
+
+    active_provider = (ps.ai_provider_override if ps and ps.ai_provider_override else ai_client.active_provider)
+    active_model = (ps.ai_model_override if ps and ps.ai_model_override else ai_client.active_model)
+
+    status = ai_client.get_provider_status()
+    providers = [
+        {
+            "id": pid,
+            "name": info["name"],
+            "is_configured": info["is_configured"],
+            "models": info["models"],
+            "default_model": info["default_model"],
+        }
+        for pid, info in status.items()
+    ]
+
+    return {
+        "providers": providers,
+        "active_provider": active_provider,
+        "active_model": active_model,
+    }
 
 
 # ---- User Management ----

@@ -8,12 +8,29 @@ from app.api.v1.router import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: verify DB connection
-    from app.db.session import engine
-    from app.db.base import Base
+    # Startup: verify DB connection + apply platform AI config
+    from app.db.session import engine, AsyncSessionLocal
     async with engine.begin() as conn:
-        # Tables created by Alembic migrations; this just validates connection
-        pass
+        pass  # tables managed by Alembic migrations
+
+    # Load platform AI provider/model overrides so ai_client uses DB settings
+    try:
+        from sqlalchemy import select
+        from app.models.platform_settings import PlatformSettings
+        from app.services.ai.client import ai_client
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(PlatformSettings).where(PlatformSettings.id == 1))
+            ps = result.scalar_one_or_none()
+            if ps and (ps.ai_provider_override or ps.ai_model_override):
+                provider = ps.ai_provider_override or ai_client.active_provider
+                model = ps.ai_model_override or ai_client.active_model
+                try:
+                    ai_client.configure(provider, model)
+                except ValueError:
+                    pass
+    except Exception:
+        pass  # DB may not be ready yet on first deploy; migrations run first
+
     yield
     # Shutdown: close DB pool
     await engine.dispose()

@@ -406,7 +406,22 @@ export interface PlatformSettings {
   custom_css: string | null
   features_config: PlatformFeaturesConfig | null
   max_ai_requests_per_day: number
+  ai_provider_override: string | null
   ai_model_override: string | null
+}
+
+export interface AIProviderInfo {
+  id: string
+  name: string
+  is_configured: boolean
+  models: string[]
+  default_model: string
+}
+
+export interface AIProvidersResponse {
+  providers: AIProviderInfo[]
+  active_provider: string
+  active_model: string
 }
 
 /** Returned by GET /directory/public-settings — no auth required */
