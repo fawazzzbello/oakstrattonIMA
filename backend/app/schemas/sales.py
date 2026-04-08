@@ -1,7 +1,7 @@
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 
 
 # ---- Lead Schemas ----
@@ -348,3 +348,114 @@ class SalesDashboardResponse(BaseModel):
     recent_leads: List[LeadResponse]
     upcoming_appointments: List[AppointmentResponse]
     recent_proposals: List[SalesProposalResponse]
+
+
+# ---- Contact Schemas ----
+
+class ContactCreate(BaseModel):
+    lead_id: int
+    full_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    title: Optional[str] = None
+    department: Optional[str] = None
+    is_primary_contact: bool = False
+    decision_maker: bool = False
+    influencer: bool = True
+    notes: Optional[str] = None
+
+
+class ContactUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    title: Optional[str] = None
+    department: Optional[str] = None
+    is_primary_contact: Optional[bool] = None
+    decision_maker: Optional[bool] = None
+    influencer: Optional[bool] = None
+    notes: Optional[str] = None
+    engagement_score: Optional[int] = None
+
+
+class ContactResponse(BaseModel):
+    id: int
+    lead_id: int
+    full_name: str
+    email: str
+    phone: Optional[str] = None
+    title: Optional[str] = None
+    department: Optional[str] = None
+    is_primary_contact: bool
+    decision_maker: bool
+    influencer: bool
+    email_opens: int
+    email_clicks: int
+    last_contact_at: Optional[datetime] = None
+    engagement_score: int
+    calendar_synced: bool
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ---- Payment Schemas ----
+
+class ProposalPaymentCreate(BaseModel):
+    proposal_id: int
+    amount: Decimal
+    currency: str = "USD"
+    due_date: Optional[datetime] = None
+    payment_method: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ProposalPaymentUpdate(BaseModel):
+    status: Optional[str] = None
+    payment_method: Optional[str] = None
+    paid_at: Optional[datetime] = None
+    due_date: Optional[datetime] = None
+    refund_amount: Optional[Decimal] = None
+    notes: Optional[str] = None
+
+
+class ProposalPaymentResponse(BaseModel):
+    id: int
+    proposal_id: int
+    amount: Decimal
+    currency: str
+    status: str
+    stripe_payment_intent_id: Optional[str] = None
+    stripe_invoice_id: Optional[str] = None
+    payment_method: Optional[str] = None
+    paid_at: Optional[datetime] = None
+    due_date: Optional[datetime] = None
+    refunded_at: Optional[datetime] = None
+    refund_amount: Optional[Decimal] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PaymentLinkCreate(BaseModel):
+    proposal_id: int
+    expires_at: Optional[datetime] = None
+
+
+class PaymentLinkResponse(BaseModel):
+    id: int
+    proposal_id: int
+    stripe_link_id: Optional[str] = None
+    payment_link_url: str
+    is_active: bool
+    expires_at: Optional[datetime] = None
+    link_clicks: int
+    last_clicked_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
