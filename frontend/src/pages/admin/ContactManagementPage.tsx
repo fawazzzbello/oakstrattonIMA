@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Edit2, Trash2, Mail, Phone, Briefcase, Users } from "lucide-react";
+import api from "@/utils/api";
 
 interface Contact {
   id: number;
@@ -39,11 +40,8 @@ export default function ContactManagementPage() {
 
   const fetchContacts = async () => {
     try {
-      const response = await fetch("/api/v1/admin/sales/contacts");
-      if (response.ok) {
-        const data = await response.json();
-        setContacts(data);
-      }
+      const { data } = await api.get("/admin/sales/contacts");
+      setContacts(data);
     } catch (error) {
       console.error("Failed to fetch contacts:", error);
     }
@@ -51,11 +49,8 @@ export default function ContactManagementPage() {
 
   const fetchLeads = async () => {
     try {
-      const response = await fetch("/api/v1/admin/sales/leads?limit=1000");
-      if (response.ok) {
-        const result = await response.json();
-        setLeads(result.items || []);
-      }
+      const { data } = await api.get("/admin/sales/leads?limit=1000");
+      setLeads(data.items || []);
     } catch (error) {
       console.error("Failed to fetch leads:", error);
     }

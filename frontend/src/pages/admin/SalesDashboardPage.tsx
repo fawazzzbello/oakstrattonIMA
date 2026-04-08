@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, Users, Target, DollarSign, Calendar, FileText } from "lucide-react";
+import api from "@/utils/api";
 
 interface DashboardData {
   summary: {
@@ -28,11 +29,8 @@ export default function SalesDashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch("/api/v1/admin/sales/dashboard");
-      if (response.ok) {
-        const result = await response.json();
-        setData(result);
-      }
+      const { data: result } = await api.get("/admin/sales/dashboard");
+      setData(result);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
     } finally {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Edit2, Trash2, Mail, ToggleRight, ToggleLeft } from "lucide-react";
+import api from "@/utils/api";
 
 interface EmailSequence {
   id: number;
@@ -31,11 +32,8 @@ export default function EmailSequencesPage() {
 
   const fetchSequences = async () => {
     try {
-      const response = await fetch("/api/v1/admin/sales/email-sequences");
-      if (response.ok) {
-        const data = await response.json();
-        setSequences(data);
-      }
+      const { data } = await api.get("/admin/sales/email-sequences");
+      setSequences(data);
     } catch (error) {
       console.error("Failed to fetch sequences:", error);
     } finally {

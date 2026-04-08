@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Save, AlertCircle } from "lucide-react";
+import api from "@/utils/api";
 
 interface SalesSettings {
   id: number;
@@ -41,12 +42,9 @@ export default function SalesSettingsPage() {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/v1/admin/sales-settings");
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data);
-        setFormData(data);
-      }
+      const { data } = await api.get("/admin/sales-settings");
+      setSettings(data);
+      setFormData(data);
     } catch (error) {
       console.error("Failed to fetch settings:", error);
       setMessage({ type: "error", text: "Failed to load settings" });
@@ -65,19 +63,9 @@ export default function SalesSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch("/api/v1/admin/sales-settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        const updated = await response.json();
-        setSettings(updated);
-        setMessage({ type: "success", text: "Settings saved successfully" });
-      } else {
-        setMessage({ type: "error", text: "Failed to save settings" });
-      }
+      const { data } = await api.patch("/admin/sales-settings", formData);
+      setSettings(data);
+      setMessage({ type: "success", text: "Settings saved successfully" });
     } catch (error) {
       console.error("Failed to save settings:", error);
       setMessage({ type: "error", text: "An error occurred while saving" });

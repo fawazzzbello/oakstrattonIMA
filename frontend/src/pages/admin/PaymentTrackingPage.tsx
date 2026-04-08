@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { DollarSign, Copy, CheckCircle, Clock, XCircle, Link2, Download } from "lucide-react";
+import api from "@/utils/api";
 
 interface ProposalPayment {
   id: number;
@@ -49,11 +50,8 @@ export default function PaymentTrackingPage() {
 
   const fetchProposals = async () => {
     try {
-      const response = await fetch("/api/v1/admin/sales/proposals");
-      if (response.ok) {
-        const result = await response.json();
-        setProposals(result.items || []);
-      }
+      const { data } = await api.get("/admin/sales/proposals");
+      setProposals(data.items || []);
     } catch (error) {
       console.error("Failed to fetch proposals:", error);
     }
@@ -61,11 +59,8 @@ export default function PaymentTrackingPage() {
 
   const fetchPayments = async () => {
     try {
-      const response = await fetch("/api/v1/admin/sales/payments");
-      if (response.ok) {
-        const data = await response.json();
-        setPayments(data);
-      }
+      const { data } = await api.get("/admin/sales/payments");
+      setPayments(data);
     } catch (error) {
       console.error("Failed to fetch payments:", error);
     }
