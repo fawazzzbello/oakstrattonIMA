@@ -334,6 +334,118 @@ export default function SalesSettingsPage() {
           </div>
         </div>
 
+        {/* Google Calendar Integration */}
+        <div className="glass-card p-6">
+          <h2 className="text-lg font-semibold mb-4">📅 Google Calendar Integration</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Auto-sync appointments with Google Calendar for seamless scheduling
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.google_calendar_enabled || false}
+                  onChange={(e) => handleChange("google_calendar_enabled", e.target.checked)}
+                  className="rounded border-border/60"
+                />
+                <span className="text-sm font-medium">Enable Google Calendar Integration</span>
+              </label>
+            </div>
+
+            {formData.google_calendar_enabled && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Google Calendar API Key</label>
+                  <input
+                    type="password"
+                    placeholder="AIza..."
+                    value={formData.google_calendar_api_key || ""}
+                    onChange={(e) => handleChange("google_calendar_api_key", e.target.value)}
+                    className="input-field w-full"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Get your API key from Google Cloud Console
+                  </p>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.auto_sync_calendar || false}
+                      onChange={(e) => handleChange("auto_sync_calendar", e.target.checked)}
+                      className="rounded border-border/60"
+                    />
+                    <span className="text-sm font-medium">Auto-sync Appointments</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Automatically sync all new appointments to Google Calendar
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Stripe Payment Processing */}
+        <div className="glass-card p-6">
+          <h2 className="text-lg font-semibold mb-4">💳 Payment Processing (Stripe)</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Enable payment collection on proposals and track invoices
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.enable_payment_collection || false}
+                  onChange={(e) => handleChange("enable_payment_collection", e.target.checked)}
+                  className="rounded border-border/60"
+                />
+                <span className="text-sm font-medium">Enable Payment Collection</span>
+              </label>
+            </div>
+
+            {formData.enable_payment_collection && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Stripe Public Key</label>
+                  <input
+                    type="text"
+                    placeholder="pk_live_..."
+                    value={formData.stripe_public_key || ""}
+                    onChange={(e) => handleChange("stripe_public_key", e.target.value)}
+                    className="input-field w-full font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Stripe Secret Key</label>
+                  <input
+                    type="password"
+                    placeholder="sk_live_..."
+                    value={formData.stripe_secret_key || ""}
+                    onChange={(e) => handleChange("stripe_secret_key", e.target.value)}
+                    className="input-field w-full"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Found in your Stripe Dashboard → Developers → API Keys
+                  </p>
+                </div>
+
+                <div className="bg-amber-400/10 border border-amber-400/30 rounded p-4">
+                  <p className="text-xs text-amber-400">
+                    ⚠️ Keep your secret key secure. Never commit it to version control.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* Save Button */}
         <div className="flex justify-end gap-4">
           <button className="btn-secondary" onClick={fetchSettings}>

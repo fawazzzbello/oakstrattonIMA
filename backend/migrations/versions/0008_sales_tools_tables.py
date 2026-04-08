@@ -18,6 +18,33 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # --- sales_contacts ---
+    op.create_table(
+        "sales_contacts",
+        sa.Column("id", sa.Integer(), primary_key=True, index=True),
+        sa.Column("lead_id", sa.Integer(), sa.ForeignKey("sales_leads.id"), nullable=False, index=True),
+        sa.Column("full_name", sa.String(255), nullable=False),
+        sa.Column("email", sa.String(255), nullable=False, index=True),
+        sa.Column("phone", sa.String(20)),
+        sa.Column("title", sa.String(255)),
+        sa.Column("department", sa.String(100)),
+        sa.Column("is_primary_contact", sa.Boolean(), server_default=sa.false()),
+        sa.Column("decision_maker", sa.Boolean(), server_default=sa.false()),
+        sa.Column("influencer", sa.Boolean(), server_default=sa.true()),
+        sa.Column("email_opens", sa.Integer(), server_default="0"),
+        sa.Column("email_clicks", sa.Integer(), server_default="0"),
+        sa.Column("last_contact_at", sa.DateTime()),
+        sa.Column("engagement_score", sa.Integer(), server_default="0"),
+        sa.Column("calendar_event_id", sa.String(500)),
+        sa.Column("calendar_synced", sa.Boolean(), server_default=sa.false()),
+        sa.Column("notes", sa.Text()),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+    )
+    op.create_index("ix_sales_contacts_id", "sales_contacts", ["id"])
+    op.create_index("ix_sales_contacts_lead_id", "sales_contacts", ["lead_id"])
+    op.create_index("ix_sales_contacts_email", "sales_contacts", ["email"])
+
     # --- sales_leads ---
     op.create_table(
         "sales_leads",
@@ -55,6 +82,7 @@ def upgrade() -> None:
         "sales_appointments",
         sa.Column("id", sa.Integer(), primary_key=True, index=True),
         sa.Column("lead_id", sa.Integer(), sa.ForeignKey("sales_leads.id"), nullable=False, index=True),
+        sa.Column("contact_id", sa.Integer(), sa.ForeignKey("sales_contacts.id")),
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("description", sa.Text()),
         sa.Column("scheduled_at", sa.DateTime(), nullable=False, index=True),
@@ -63,6 +91,8 @@ def upgrade() -> None:
         sa.Column("meeting_type", sa.String(50)),
         sa.Column("meeting_url", sa.String(500)),
         sa.Column("meeting_notes", sa.Text()),
+        sa.Column("google_calendar_id", sa.String(500)),
+        sa.Column("calendar_synced", sa.Boolean(), server_default=sa.false()),
         sa.Column("status", sa.String(50), server_default="scheduled"),
         sa.Column("outcome", sa.Text()),
         sa.Column("assigned_to_id", sa.Integer(), sa.ForeignKey("users.id")),
@@ -172,6 +202,45 @@ def upgrade() -> None:
     op.create_index("ix_deal_pipelines_id", "deal_pipelines", ["id"])
     op.create_index("ix_deal_pipelines_lead_id", "deal_pipelines", ["lead_id"])
 
+    # --- proposal_payments ---
+    op.create_table(
+        "proposal_payments",
+        sa.Column("id", sa.Integer(), primary_key=True, index=True),
+        sa.Column("proposal_id", sa.Integer(), sa.ForeignKey("sales_proposals.id"), nullable=False, index=True),
+        sa.Column("amount", sa.NUMERIC(12, 2), nullable=False),
+        sa.Column("currency", sa.String(3), server_default="USD"),
+        sa.Column("status", sa.String(50), server_default="pending"),
+        sa.Column("stripe_payment_intent_id", sa.String(255), unique=True),
+        sa.Column("stripe_invoice_id", sa.String(255)),
+        sa.Column("payment_method", sa.String(50)),
+        sa.Column("paid_at", sa.DateTime()),
+        sa.Column("due_date", sa.DateTime()),
+        sa.Column("refunded_at", sa.DateTime()),
+        sa.Column("refund_amount", sa.NUMERIC(12, 2)),
+        sa.Column("notes", sa.Text()),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+    )
+    op.create_index("ix_proposal_payments_id", "proposal_payments", ["id"])
+    op.create_index("ix_proposal_payments_proposal_id", "proposal_payments", ["proposal_id"])
+
+    # --- payment_links ---
+    op.create_table(
+        "payment_links",
+        sa.Column("id", sa.Integer(), primary_key=True, index=True),
+        sa.Column("proposal_id", sa.Integer(), sa.ForeignKey("sales_proposals.id"), nullable=False, unique=True, index=True),
+        sa.Column("stripe_link_id", sa.String(255), unique=True),
+        sa.Column("payment_link_url", sa.String(500), nullable=False),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.true()),
+        sa.Column("expires_at", sa.DateTime()),
+        sa.Column("link_clicks", sa.Integer(), server_default="0"),
+        sa.Column("last_clicked_at", sa.DateTime()),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+    )
+    op.create_index("ix_payment_links_id", "payment_links", ["id"])
+    op.create_index("ix_payment_links_proposal_id", "payment_links", ["proposal_id"])
+
     # --- sales_settings ---
     op.create_table(
         "sales_settings",
@@ -191,6 +260,12 @@ def upgrade() -> None:
         sa.Column("from_name", sa.String(255), server_default="Sales Team"),
         sa.Column("proposal_validity_days", sa.Integer(), server_default="30"),
         sa.Column("proposal_currency", sa.String(3), server_default="USD"),
+        sa.Column("stripe_public_key", sa.String(500)),
+        sa.Column("stripe_secret_key", sa.String(500)),
+        sa.Column("enable_payment_collection", sa.Boolean(), server_default=sa.true()),
+        sa.Column("google_calendar_enabled", sa.Boolean(), server_default=sa.false()),
+        sa.Column("google_calendar_api_key", sa.String(500)),
+        sa.Column("auto_sync_calendar", sa.Boolean(), server_default=sa.false()),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
@@ -209,6 +284,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("sales_settings")
+    op.drop_table("payment_links")
+    op.drop_table("proposal_payments")
     op.drop_table("deal_pipelines")
     op.drop_table("sales_proposals")
     op.drop_table("proposal_templates")
@@ -216,3 +293,4 @@ def downgrade() -> None:
     op.drop_table("email_sequences")
     op.drop_table("sales_appointments")
     op.drop_table("sales_leads")
+    op.drop_table("sales_contacts")

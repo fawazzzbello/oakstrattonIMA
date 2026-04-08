@@ -13,7 +13,10 @@ from app.models.influencer import Influencer
 from app.models.client import Client
 from app.models.payment import Invoice, InvoiceStatus
 from app.models.platform_settings import PlatformSettings, FeatureFlag, AuditLog
-from app.models.sales import Lead, Appointment, EmailSequence, SalesProposal, ProposalTemplate, DealPipeline, SalesSettings
+from app.models.sales import (
+    Lead, Contact, Appointment, EmailSequence, SalesProposal, ProposalTemplate,
+    DealPipeline, SalesSettings, ProposalPayment, PaymentLink
+)
 from app.schemas.admin import (
     PlatformSettingsResponse,
     PlatformSettingsUpdate,
@@ -30,7 +33,9 @@ from app.schemas.common import PaginatedResponse
 from app.schemas.sales import (
     LeadResponse, LeadUpdate, AppointmentResponse, EmailSequenceResponse,
     SalesProposalResponse, ProposalTemplateResponse, DealPipelineResponse,
-    SalesSettingsResponse, SalesSettingsUpdate, LeadSummaryResponse, SalesDashboardResponse
+    SalesSettingsResponse, SalesSettingsUpdate, LeadSummaryResponse, SalesDashboardResponse,
+    ContactCreate, ContactUpdate, ContactResponse, ProposalPaymentCreate, ProposalPaymentResponse,
+    PaymentLinkResponse
 )
 from app.services.audit import log_action
 
@@ -697,6 +702,206 @@ async def create_proposal_template(
     )
     await db.commit()
     return template
+
+
+# ---- Contact Management ----
+
+@router.post("/sales/contacts", response_model=ContactResponse, status_code=201)
+async def create_contact(
+    data: ContactCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create a new contact for a lead"""
+    contact = Contact(**data.model_dump())
+    db.add(contact)
+    await db.flush()
+    await db.refresh(contact)
+
+    await log_action(
+        db,
+        user_email=current_user.email,
+        action="create_contact",
+        user_id=current_user.id,
+        resource_type="sales_contact",
+        resource_id=str(contact.id),
+        ip_address=request.client.host if request.client else None,
+        after_state={"full_name": contact.full_name, "email": contact.email},
+    )
+    await db.commit()
+    return contact
+
+
+@router.get("/sales/leads/{lead_id}/contacts", response_model=list[ContactResponse])
+async def list_lead_contacts(
+    lead_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Get all contacts for a lead"""
+    result = await db.execute(select(Contact).where(Contact.lead_id == lead_id))
+    return result.scalars().all()
+
+
+@router.get("/sales/contacts/{contact_id}", response_model=ContactResponse)
+async def get_contact(
+    contact_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Get a specific contact"""
+    result = await db.execute(select(Contact).where(Contact.id == contact_id))
+    contact = result.scalar_one_or_none()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    return contact
+
+
+@router.patch("/sales/contacts/{contact_id}", response_model=ContactResponse)
+async def update_contact(
+    contact_id: int,
+    data: ContactUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Update a contact"""
+    result = await db.execute(select(Contact).where(Contact.id == contact_id))
+    contact = result.scalar_one_or_none()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    before = {k: getattr(contact, k) for k in update_data}
+    for key, value in update_data.items():
+        setattr(contact, key, value)
+    await db.flush()
+    await db.refresh(contact)
+
+    await log_action(
+        db,
+        user_email=current_user.email,
+        action="update_contact",
+        user_id=current_user.id,
+        resource_type="sales_contact",
+        resource_id=str(contact_id),
+        ip_address=request.client.host if request.client else None,
+        before_state=before,
+        after_state=update_data,
+    )
+    await db.commit()
+    return contact
+
+
+# ---- Payment Management ----
+
+@router.post("/sales/proposals/{proposal_id}/payments", response_model=ProposalPaymentResponse, status_code=201)
+async def create_proposal_payment(
+    proposal_id: int,
+    data: ProposalPaymentCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create a payment record for a proposal"""
+    result = await db.execute(select(SalesProposal).where(SalesProposal.id == proposal_id))
+    proposal = result.scalar_one_or_none()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    payment = ProposalPayment(**data.model_dump())
+    db.add(payment)
+    await db.flush()
+    await db.refresh(payment)
+
+    await log_action(
+        db,
+        user_email=current_user.email,
+        action="create_proposal_payment",
+        user_id=current_user.id,
+        resource_type="proposal_payment",
+        resource_id=str(payment.id),
+        ip_address=request.client.host if request.client else None,
+        after_state={"proposal_id": proposal_id, "amount": float(payment.amount)},
+    )
+    await db.commit()
+    return payment
+
+
+@router.get("/sales/proposals/{proposal_id}/payments", response_model=list[ProposalPaymentResponse])
+async def list_proposal_payments(
+    proposal_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Get all payments for a proposal"""
+    result = await db.execute(select(ProposalPayment).where(ProposalPayment.proposal_id == proposal_id))
+    return result.scalars().all()
+
+
+@router.get("/sales/proposals/{proposal_id}/payment-link", response_model=PaymentLinkResponse)
+async def get_proposal_payment_link(
+    proposal_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Get payment link for a proposal"""
+    result = await db.execute(select(PaymentLink).where(PaymentLink.proposal_id == proposal_id))
+    link = result.scalar_one_or_none()
+    if not link:
+        raise HTTPException(status_code=404, detail="Payment link not found")
+    return link
+
+
+@router.post("/sales/proposals/{proposal_id}/create-payment-link", response_model=PaymentLinkResponse)
+async def create_proposal_payment_link(
+    proposal_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create a payment link for a proposal"""
+    result = await db.execute(select(SalesProposal).where(SalesProposal.id == proposal_id))
+    proposal = result.scalar_one_or_none()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    # Check if payment link already exists
+    result = await db.execute(select(PaymentLink).where(PaymentLink.proposal_id == proposal_id))
+    existing_link = result.scalar_one_or_none()
+    if existing_link:
+        return existing_link
+
+    # Create new payment link
+    from app.services.sales.payment_processor import stripe_payment_processor
+
+    payment_url = await stripe_payment_processor.create_payment_link(
+        db,
+        proposal,
+        return_url=f"{request.base_url}proposals/{proposal_id}",
+    )
+
+    if not payment_url:
+        raise HTTPException(status_code=500, detail="Failed to create payment link")
+
+    # Payment link should already be created in the service
+    result = await db.execute(select(PaymentLink).where(PaymentLink.proposal_id == proposal_id))
+    link = result.scalar_one_or_none()
+
+    if link:
+        await log_action(
+            db,
+            user_email=current_user.email,
+            action="create_payment_link",
+            user_id=current_user.id,
+            resource_type="payment_link",
+            resource_id=str(link.id),
+            ip_address=request.client.host if request.client else None,
+            after_state={"proposal_id": proposal_id},
+        )
+
+    return link
 
 
 # ---- Sales Dashboard ----
