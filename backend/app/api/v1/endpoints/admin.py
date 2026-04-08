@@ -13,6 +13,7 @@ from app.models.influencer import Influencer
 from app.models.client import Client
 from app.models.payment import Invoice, InvoiceStatus
 from app.models.platform_settings import PlatformSettings, FeatureFlag, AuditLog
+from app.models.sales import Lead, Appointment, EmailSequence, SalesProposal, ProposalTemplate, DealPipeline, SalesSettings
 from app.schemas.admin import (
     PlatformSettingsResponse,
     PlatformSettingsUpdate,
@@ -26,6 +27,11 @@ from app.schemas.admin import (
     AdminStatsResponse,
 )
 from app.schemas.common import PaginatedResponse
+from app.schemas.sales import (
+    LeadResponse, LeadUpdate, AppointmentResponse, EmailSequenceResponse,
+    SalesProposalResponse, ProposalTemplateResponse, DealPipelineResponse,
+    SalesSettingsResponse, SalesSettingsUpdate, LeadSummaryResponse, SalesDashboardResponse
+)
 from app.services.audit import log_action
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -484,4 +490,283 @@ async def get_stats(
         active_campaigns=active_campaigns,
         users_by_role=users_by_role,
         campaigns_by_status=campaigns_by_status,
+    )
+
+
+# ---- Sales Settings Management ----
+
+@router.get("/sales-settings", response_model=SalesSettingsResponse)
+async def get_sales_settings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Get all sales configuration settings"""
+    result = await db.execute(select(SalesSettings).where(SalesSettings.id == 1))
+    settings = result.scalar_one_or_none()
+    if not settings:
+        settings = SalesSettings(id=1)
+        db.add(settings)
+        await db.flush()
+        await db.refresh(settings)
+    return settings
+
+
+@router.patch("/sales-settings", response_model=SalesSettingsResponse)
+async def update_sales_settings(
+    data: SalesSettingsUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Update sales configuration settings"""
+    result = await db.execute(select(SalesSettings).where(SalesSettings.id == 1))
+    settings = result.scalar_one_or_none()
+    if not settings:
+        settings = SalesSettings(id=1)
+        db.add(settings)
+        await db.flush()
+
+    update_data = data.model_dump(exclude_unset=True)
+    before = {k: getattr(settings, k) for k in update_data}
+    for key, value in update_data.items():
+        setattr(settings, key, value)
+    await db.flush()
+    await db.refresh(settings)
+
+    await log_action(
+        db,
+        user_email=current_user.email,
+        action="update_sales_settings",
+        user_id=current_user.id,
+        resource_type="sales_settings",
+        resource_id="1",
+        ip_address=request.client.host if request.client else None,
+        before_state=before,
+        after_state=update_data,
+    )
+    await db.commit()
+    return settings
+
+
+# ---- Lead Management ----
+
+@router.get("/sales/leads", response_model=PaginatedResponse[LeadResponse])
+async def list_leads(
+    status: Optional[str] = None,
+    source: Optional[str] = None,
+    qualified: Optional[bool] = None,
+    skip: int = 0,
+    limit: int = Query(default=50, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """List all leads with optional filtering"""
+    query = select(Lead)
+    count_query = select(func.count(Lead.id))
+
+    if status:
+        query = query.where(Lead.status == status)
+        count_query = count_query.where(Lead.status == status)
+    if source:
+        query = query.where(Lead.source == source)
+        count_query = count_query.where(Lead.source == source)
+    if qualified is not None:
+        query = query.where(Lead.qualified == qualified)
+        count_query = count_query.where(Lead.qualified == qualified)
+
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    query = query.order_by(Lead.created_at.desc()).offset(skip).limit(limit)
+    result = await db.execute(query)
+    leads = result.scalars().all()
+
+    return PaginatedResponse(items=leads, total=total, skip=skip, limit=limit)
+
+
+@router.get("/sales/leads/{lead_id}", response_model=LeadResponse)
+async def get_lead(
+    lead_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Get a specific lead"""
+    result = await db.execute(select(Lead).where(Lead.id == lead_id))
+    lead = result.scalar_one_or_none()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return lead
+
+
+@router.patch("/sales/leads/{lead_id}", response_model=LeadResponse)
+async def update_lead(
+    lead_id: int,
+    data: LeadUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Update a lead"""
+    result = await db.execute(select(Lead).where(Lead.id == lead_id))
+    lead = result.scalar_one_or_none()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    before = {k: getattr(lead, k) for k in update_data}
+    for key, value in update_data.items():
+        setattr(lead, key, value)
+    await db.flush()
+    await db.refresh(lead)
+
+    await log_action(
+        db,
+        user_email=current_user.email,
+        action="update_lead",
+        user_id=current_user.id,
+        resource_type="sales_lead",
+        resource_id=str(lead_id),
+        ip_address=request.client.host if request.client else None,
+        before_state=before,
+        after_state=update_data,
+    )
+    await db.commit()
+    return lead
+
+
+# ---- Email Sequences Management ----
+
+@router.get("/sales/email-sequences", response_model=list[EmailSequenceResponse])
+async def list_email_sequences(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """List all email sequences"""
+    result = await db.execute(select(EmailSequence).order_by(EmailSequence.created_at.desc()))
+    return result.scalars().all()
+
+
+@router.get("/sales/email-sequences/{sequence_id}", response_model=EmailSequenceResponse)
+async def get_email_sequence(
+    sequence_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Get a specific email sequence"""
+    result = await db.execute(select(EmailSequence).where(EmailSequence.id == sequence_id))
+    sequence = result.scalar_one_or_none()
+    if not sequence:
+        raise HTTPException(status_code=404, detail="Email sequence not found")
+    return sequence
+
+
+# ---- Proposal Templates Management ----
+
+@router.get("/sales/proposal-templates", response_model=list[ProposalTemplateResponse])
+async def list_proposal_templates(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """List all proposal templates"""
+    result = await db.execute(select(ProposalTemplate).order_by(ProposalTemplate.created_at.desc()))
+    return result.scalars().all()
+
+
+@router.post("/sales/proposal-templates", response_model=ProposalTemplateResponse, status_code=201)
+async def create_proposal_template(
+    data: ProposalTemplateResponse,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create a new proposal template"""
+    template = ProposalTemplate(**data.model_dump(exclude={"created_at", "updated_at", "id"}))
+    db.add(template)
+    await db.flush()
+    await db.refresh(template)
+
+    await log_action(
+        db,
+        user_email=current_user.email,
+        action="create_proposal_template",
+        user_id=current_user.id,
+        resource_type="proposal_template",
+        resource_id=str(template.id),
+        ip_address=request.client.host if request.client else None,
+        after_state={"name": template.name},
+    )
+    await db.commit()
+    return template
+
+
+# ---- Sales Dashboard ----
+
+@router.get("/sales/dashboard", response_model=SalesDashboardResponse)
+async def get_sales_dashboard(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Get sales dashboard overview"""
+    # Summary stats
+    result = await db.execute(select(func.count(Lead.id)))
+    total_leads = result.scalar() or 0
+
+    result = await db.execute(select(func.count(Lead.id)).where(Lead.status == "new"))
+    new_leads = result.scalar() or 0
+
+    result = await db.execute(select(func.count(Lead.id)).where(Lead.qualified == True))
+    qualified_leads = result.scalar() or 0
+
+    result = await db.execute(select(func.count(Lead.id)).where(Lead.status == "won"))
+    deals_won = result.scalar() or 0
+
+    result = await db.execute(select(func.count(Lead.id)).where(Lead.status == "lost"))
+    deals_lost = result.scalar() or 0
+
+    result = await db.execute(select(func.sum(DealPipeline.deal_value)))
+    total_pipeline_value = float(result.scalar() or 0)
+
+    result = await db.execute(select(func.avg(Lead.lead_score)))
+    average_lead_score = float(result.scalar() or 0)
+
+    result = await db.execute(select(func.avg(DealPipeline.deal_value)))
+    average_deal_size = result.scalar()
+
+    summary = LeadSummaryResponse(
+        total_leads=total_leads,
+        new_leads=new_leads,
+        qualified_leads=qualified_leads,
+        deals_won=deals_won,
+        deals_lost=deals_lost,
+        total_pipeline_value=total_pipeline_value,
+        average_lead_score=average_lead_score,
+        average_deal_size=average_deal_size,
+    )
+
+    # Recent leads
+    result = await db.execute(select(Lead).order_by(Lead.created_at.desc()).limit(5))
+    recent_leads = result.scalars().all()
+
+    # Upcoming appointments
+    result = await db.execute(
+        select(Appointment)
+        .where(Appointment.status == "scheduled")
+        .order_by(Appointment.scheduled_at)
+        .limit(5)
+    )
+    upcoming_appointments = result.scalars().all()
+
+    # Recent proposals
+    result = await db.execute(
+        select(SalesProposal)
+        .order_by(SalesProposal.created_at.desc())
+        .limit(5)
+    )
+    recent_proposals = result.scalars().all()
+
+    return SalesDashboardResponse(
+        summary=summary,
+        recent_leads=recent_leads,
+        upcoming_appointments=upcoming_appointments,
+        recent_proposals=recent_proposals,
     )

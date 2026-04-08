@@ -12,6 +12,10 @@ from app.models.payment import Invoice, Payout, Transaction, InvoiceStatus, Payo
 from app.models.notification import Notification, NotificationType
 from app.models.platform_settings import PlatformSettings, FeatureFlag, AuditLog
 from app.models.ai_result import AIAnalysis, AIInsightReport, AIChatSession, AIChatMessage
+from app.models.sales import (
+    Lead, LeadSource, LeadStatus, Appointment, EmailSequence, EmailInteraction,
+    SalesProposal, ProposalTemplate, DealPipeline, SalesSettings
+)
 
 __all__ = [
     "User", "UserRole",
@@ -26,4 +30,6 @@ __all__ = [
     "Notification", "NotificationType",
     "PlatformSettings", "FeatureFlag", "AuditLog",
     "AIAnalysis", "AIInsightReport", "AIChatSession", "AIChatMessage",
+    "Lead", "LeadSource", "LeadStatus", "Appointment", "EmailSequence", "EmailInteraction",
+    "SalesProposal", "ProposalTemplate", "DealPipeline", "SalesSettings",
 ]
