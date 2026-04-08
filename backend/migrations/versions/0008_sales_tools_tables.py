@@ -45,10 +45,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_sales_leads_id", "sales_leads", ["id"])
-    op.create_index("ix_sales_leads_company_name", "sales_leads", ["company_name"])
-    op.create_index("ix_sales_leads_contact_email", "sales_leads", ["contact_email"])
-    op.create_index("ix_sales_leads_status", "sales_leads", ["status"])
 
     # --- sales_contacts (depends on sales_leads) ---
     op.create_table(
@@ -73,9 +69,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_sales_contacts_id", "sales_contacts", ["id"])
-    op.create_index("ix_sales_contacts_lead_id", "sales_contacts", ["lead_id"])
-    op.create_index("ix_sales_contacts_email", "sales_contacts", ["email"])
 
     # --- sales_appointments ---
     op.create_table(
@@ -100,8 +93,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_sales_appointments_id", "sales_appointments", ["id"])
-    op.create_index("ix_sales_appointments_lead_id", "sales_appointments", ["lead_id"])
 
     # --- email_sequences (no foreign keys) ---
     op.create_table(
@@ -117,8 +108,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_email_sequences_id", "email_sequences", ["id"])
-    op.create_index("ix_email_sequences_name", "email_sequences", ["name"])
 
     # --- email_interactions ---
     op.create_table(
@@ -139,8 +128,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_email_interactions_id", "email_interactions", ["id"])
-    op.create_index("ix_email_interactions_lead_id", "email_interactions", ["lead_id"])
 
     # --- proposal_templates (no foreign keys) ---
     op.create_table(
@@ -154,7 +141,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_proposal_templates_id", "proposal_templates", ["id"])
 
     # --- sales_proposals ---
     op.create_table(
@@ -179,9 +165,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_sales_proposals_id", "sales_proposals", ["id"])
-    op.create_index("ix_sales_proposals_lead_id", "sales_proposals", ["lead_id"])
-    op.create_index("ix_sales_proposals_proposal_number", "sales_proposals", ["proposal_number"])
 
     # --- proposal_payments ---
     op.create_table(
@@ -202,8 +185,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_proposal_payments_id", "proposal_payments", ["id"])
-    op.create_index("ix_proposal_payments_proposal_id", "proposal_payments", ["proposal_id"])
 
     # --- payment_links ---
     op.create_table(
@@ -219,8 +200,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_payment_links_id", "payment_links", ["id"])
-    op.create_index("ix_payment_links_proposal_id", "payment_links", ["proposal_id"])
 
     # --- deal_pipelines ---
     op.create_table(
@@ -238,8 +217,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_deal_pipelines_id", "deal_pipelines", ["id"])
-    op.create_index("ix_deal_pipelines_lead_id", "deal_pipelines", ["lead_id"])
 
     # --- sales_settings ---
     op.create_table(
