@@ -18,34 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # --- sales_contacts ---
-    op.create_table(
-        "sales_contacts",
-        sa.Column("id", sa.Integer(), primary_key=True, index=True),
-        sa.Column("lead_id", sa.Integer(), sa.ForeignKey("sales_leads.id"), nullable=False, index=True),
-        sa.Column("full_name", sa.String(255), nullable=False),
-        sa.Column("email", sa.String(255), nullable=False, index=True),
-        sa.Column("phone", sa.String(20)),
-        sa.Column("title", sa.String(255)),
-        sa.Column("department", sa.String(100)),
-        sa.Column("is_primary_contact", sa.Boolean(), server_default=sa.false()),
-        sa.Column("decision_maker", sa.Boolean(), server_default=sa.false()),
-        sa.Column("influencer", sa.Boolean(), server_default=sa.true()),
-        sa.Column("email_opens", sa.Integer(), server_default="0"),
-        sa.Column("email_clicks", sa.Integer(), server_default="0"),
-        sa.Column("last_contact_at", sa.DateTime()),
-        sa.Column("engagement_score", sa.Integer(), server_default="0"),
-        sa.Column("calendar_event_id", sa.String(500)),
-        sa.Column("calendar_synced", sa.Boolean(), server_default=sa.false()),
-        sa.Column("notes", sa.Text()),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-    )
-    op.create_index("ix_sales_contacts_id", "sales_contacts", ["id"])
-    op.create_index("ix_sales_contacts_lead_id", "sales_contacts", ["lead_id"])
-    op.create_index("ix_sales_contacts_email", "sales_contacts", ["email"])
-
-    # --- sales_leads ---
+    # --- sales_leads (must come first - no foreign keys) ---
     op.create_table(
         "sales_leads",
         sa.Column("id", sa.Integer(), primary_key=True, index=True),
@@ -77,6 +50,33 @@ def upgrade() -> None:
     op.create_index("ix_sales_leads_contact_email", "sales_leads", ["contact_email"])
     op.create_index("ix_sales_leads_status", "sales_leads", ["status"])
 
+    # --- sales_contacts (depends on sales_leads) ---
+    op.create_table(
+        "sales_contacts",
+        sa.Column("id", sa.Integer(), primary_key=True, index=True),
+        sa.Column("lead_id", sa.Integer(), sa.ForeignKey("sales_leads.id"), nullable=False, index=True),
+        sa.Column("full_name", sa.String(255), nullable=False),
+        sa.Column("email", sa.String(255), nullable=False, index=True),
+        sa.Column("phone", sa.String(20)),
+        sa.Column("title", sa.String(255)),
+        sa.Column("department", sa.String(100)),
+        sa.Column("is_primary_contact", sa.Boolean(), server_default=sa.false()),
+        sa.Column("decision_maker", sa.Boolean(), server_default=sa.false()),
+        sa.Column("influencer", sa.Boolean(), server_default=sa.true()),
+        sa.Column("email_opens", sa.Integer(), server_default="0"),
+        sa.Column("email_clicks", sa.Integer(), server_default="0"),
+        sa.Column("last_contact_at", sa.DateTime()),
+        sa.Column("engagement_score", sa.Integer(), server_default="0"),
+        sa.Column("calendar_event_id", sa.String(500)),
+        sa.Column("calendar_synced", sa.Boolean(), server_default=sa.false()),
+        sa.Column("notes", sa.Text()),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+    )
+    op.create_index("ix_sales_contacts_id", "sales_contacts", ["id"])
+    op.create_index("ix_sales_contacts_lead_id", "sales_contacts", ["lead_id"])
+    op.create_index("ix_sales_contacts_email", "sales_contacts", ["email"])
+
     # --- sales_appointments ---
     op.create_table(
         "sales_appointments",
@@ -103,7 +103,7 @@ def upgrade() -> None:
     op.create_index("ix_sales_appointments_id", "sales_appointments", ["id"])
     op.create_index("ix_sales_appointments_lead_id", "sales_appointments", ["lead_id"])
 
-    # --- email_sequences ---
+    # --- email_sequences (no foreign keys) ---
     op.create_table(
         "email_sequences",
         sa.Column("id", sa.Integer(), primary_key=True, index=True),
@@ -142,7 +142,7 @@ def upgrade() -> None:
     op.create_index("ix_email_interactions_id", "email_interactions", ["id"])
     op.create_index("ix_email_interactions_lead_id", "email_interactions", ["lead_id"])
 
-    # --- proposal_templates ---
+    # --- proposal_templates (no foreign keys) ---
     op.create_table(
         "proposal_templates",
         sa.Column("id", sa.Integer(), primary_key=True, index=True),
@@ -183,25 +183,6 @@ def upgrade() -> None:
     op.create_index("ix_sales_proposals_lead_id", "sales_proposals", ["lead_id"])
     op.create_index("ix_sales_proposals_proposal_number", "sales_proposals", ["proposal_number"])
 
-    # --- deal_pipelines ---
-    op.create_table(
-        "deal_pipelines",
-        sa.Column("id", sa.Integer(), primary_key=True, index=True),
-        sa.Column("lead_id", sa.Integer(), sa.ForeignKey("sales_leads.id"), nullable=False, unique=True, index=True),
-        sa.Column("current_stage", sa.String(100), nullable=False),
-        sa.Column("stage_entered_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.Column("days_in_stage", sa.Integer(), server_default="0"),
-        sa.Column("deal_value", sa.NUMERIC(12, 2), nullable=False),
-        sa.Column("probability", sa.Integer(), server_default="0"),
-        sa.Column("expected_close_date", sa.DateTime()),
-        sa.Column("actual_close_date", sa.DateTime()),
-        sa.Column("next_steps", sa.Text()),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-    )
-    op.create_index("ix_deal_pipelines_id", "deal_pipelines", ["id"])
-    op.create_index("ix_deal_pipelines_lead_id", "deal_pipelines", ["lead_id"])
-
     # --- proposal_payments ---
     op.create_table(
         "proposal_payments",
@@ -240,6 +221,25 @@ def upgrade() -> None:
     )
     op.create_index("ix_payment_links_id", "payment_links", ["id"])
     op.create_index("ix_payment_links_proposal_id", "payment_links", ["proposal_id"])
+
+    # --- deal_pipelines ---
+    op.create_table(
+        "deal_pipelines",
+        sa.Column("id", sa.Integer(), primary_key=True, index=True),
+        sa.Column("lead_id", sa.Integer(), sa.ForeignKey("sales_leads.id"), nullable=False, unique=True, index=True),
+        sa.Column("current_stage", sa.String(100), nullable=False),
+        sa.Column("stage_entered_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
+        sa.Column("days_in_stage", sa.Integer(), server_default="0"),
+        sa.Column("deal_value", sa.NUMERIC(12, 2), nullable=False),
+        sa.Column("probability", sa.Integer(), server_default="0"),
+        sa.Column("expected_close_date", sa.DateTime()),
+        sa.Column("actual_close_date", sa.DateTime()),
+        sa.Column("next_steps", sa.Text()),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+    )
+    op.create_index("ix_deal_pipelines_id", "deal_pipelines", ["id"])
+    op.create_index("ix_deal_pipelines_lead_id", "deal_pipelines", ["lead_id"])
 
     # --- sales_settings ---
     op.create_table(
@@ -292,5 +292,5 @@ def downgrade() -> None:
     op.drop_table("email_interactions")
     op.drop_table("email_sequences")
     op.drop_table("sales_appointments")
-    op.drop_table("sales_leads")
     op.drop_table("sales_contacts")
+    op.drop_table("sales_leads")
