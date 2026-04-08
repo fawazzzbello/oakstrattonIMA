@@ -471,3 +471,195 @@ export interface AdminStats {
   users_by_role: Record<string, number>
   campaigns_by_status: Record<string, number>
 }
+
+// --- Sales Tools Types ---
+export type LeadSource = 'website' | 'referral' | 'linkedin' | 'demo_request' | 'email_campaign' | 'partnership' | 'other'
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'in_demo' | 'proposal_sent' | 'negotiating' | 'won' | 'lost' | 'unqualified'
+
+export interface Lead {
+  id: number
+  company_name: string
+  contact_name: string
+  contact_email: string
+  contact_phone?: string
+  company_website?: string
+  company_size?: string
+  industry?: string
+  location?: string
+  source: LeadSource
+  status: LeadStatus
+  lead_score: number
+  qualified: boolean
+  qualification_reason?: string
+  estimated_budget?: number
+  deal_size?: string
+  notes?: string
+  next_action?: string
+  next_action_date?: string
+  last_contacted_at?: string
+  contacted_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Contact {
+  id: number
+  lead_id: number
+  full_name: string
+  email: string
+  phone?: string
+  title?: string
+  department?: string
+  is_primary_contact: boolean
+  decision_maker: boolean
+  influencer: boolean
+  email_opens: number
+  email_clicks: number
+  last_contact_at?: string
+  engagement_score: number
+  calendar_event_id?: string
+  calendar_synced: boolean
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Appointment {
+  id: number
+  lead_id: number
+  contact_id?: number
+  title: string
+  description?: string
+  scheduled_at: string
+  duration_minutes: number
+  timezone: string
+  meeting_type?: string
+  meeting_url?: string
+  meeting_notes?: string
+  google_calendar_id?: string
+  calendar_synced: boolean
+  status: string
+  outcome?: string
+  assigned_to_id?: number
+  reminder_sent: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface EmailSequence {
+  id: number
+  name: string
+  description?: string
+  is_active: boolean
+  trigger: string
+  emails: any[]
+  total_sent: number
+  active_sequences: number
+  created_at: string
+  updated_at: string
+}
+
+export interface SalesProposal {
+  id: number
+  lead_id: number
+  proposal_number: string
+  title: string
+  summary?: string
+  solutions: any[]
+  total_value: number
+  currency: string
+  status: string
+  template_id?: number
+  valid_until?: string
+  sent_at?: string
+  opened_at?: string
+  signed_at?: string
+  proposal_content: string
+  view_count: number
+  viewed_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ProposalPayment {
+  id: number
+  proposal_id: number
+  amount: number
+  currency: string
+  status: string
+  stripe_payment_intent_id?: string
+  stripe_invoice_id?: string
+  payment_method?: string
+  paid_at?: string
+  due_date?: string
+  refunded_at?: string
+  refund_amount?: number
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface PaymentLink {
+  id: number
+  proposal_id: number
+  stripe_link_id?: string
+  payment_link_url: string
+  is_active: boolean
+  expires_at?: string
+  link_clicks: number
+  last_clicked_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface DealPipeline {
+  id: number
+  lead_id: number
+  current_stage: string
+  stage_entered_at: string
+  days_in_stage: number
+  deal_value: number
+  probability: number
+  expected_close_date?: string
+  actual_close_date?: string
+  next_steps?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SalesSettings {
+  id: number
+  lead_score_website_visit: number
+  lead_score_email_open: number
+  lead_score_link_click: number
+  lead_score_demo_request: number
+  lead_score_proposal_view: number
+  auto_qualify_score: number
+  pipeline_stages: Record<string, any>
+  auto_send_follow_up: boolean
+  follow_up_days: number
+  demo_duration_minutes: number
+  default_timezone: string
+  from_email: string
+  from_name: string
+  proposal_validity_days: number
+  proposal_currency: string
+  stripe_public_key?: string
+  stripe_secret_key?: string
+  enable_payment_collection: boolean
+  google_calendar_enabled: boolean
+  google_calendar_api_key?: string
+  auto_sync_calendar: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface SalesDashboardStats {
+  total_leads: number
+  qualified_leads: number
+  pipeline_value: number
+  deals_won: number
+  avg_lead_score: number
+  avg_deal_size: number
+  conversion_rate: number
+}

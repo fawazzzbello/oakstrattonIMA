@@ -18,6 +18,14 @@ interface SalesSettings {
   from_name: string;
   proposal_validity_days: number;
   proposal_currency: string;
+  stripe_public_key?: string;
+  stripe_secret_key?: string;
+  enable_payment_collection: boolean;
+  google_calendar_enabled: boolean;
+  google_calendar_api_key?: string;
+  auto_sync_calendar: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export default function SalesSettingsPage() {
