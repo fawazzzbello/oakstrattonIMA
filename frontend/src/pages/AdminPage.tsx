@@ -5,12 +5,17 @@ import {
   Loader2, CheckCircle2, Trash2, Plus, Edit3,
   Lock, Globe, Palette, ToggleLeft, ToggleRight,
   Activity, Megaphone, UserCheck, DollarSign, Image, Layout, Link2,
-  Sparkles, CheckCircle, XCircle, ChevronDown,
+  Sparkles, CheckCircle, XCircle, ChevronDown, TrendingUp,
 } from 'lucide-react'
 import api from '@/utils/api'
 import { useAuthStore } from '@/store/authStore'
 import type { PlatformSettings, FeatureFlag, AuditLogEntry, AdminStats, User, FooterLink, SocialLink, LandingStatItem, PlatformFeaturesConfig, AIProvidersResponse, AIProviderInfo } from '@/types'
 import { format } from 'date-fns'
+import SalesDashboardPage from '@/pages/admin/SalesDashboardPage'
+import LeadManagementPage from '@/pages/admin/LeadManagementPage'
+import ContactManagementPage from '@/pages/admin/ContactManagementPage'
+import PaymentTrackingPage from '@/pages/admin/PaymentTrackingPage'
+import SalesSettingsPage from '@/pages/admin/SalesSettingsPage'
 
 // ── Overview Tab ─────────────────────────────────────────────────────────
 function OverviewTab() {
@@ -912,6 +917,38 @@ function AIEngineTab() {
   )
 }
 
+// ── Sales Tools Tab ──────────────────────────────────────────────────────
+function SalesToolsTab() {
+  const [activeSubTab, setActiveSubTab] = useState('dashboard')
+
+  const subTabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'leads', label: 'Lead Management', icon: Users },
+    { id: 'contacts', label: 'Contacts', icon: UserCheck },
+    { id: 'payments', label: 'Payments', icon: DollarSign },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-1 bg-muted/30 rounded-xl p-1 w-fit flex-wrap">
+        {subTabs.map(({ id, label, icon: Icon }) => (
+          <button key={id} onClick={() => setActiveSubTab(id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeSubTab === id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+            <Icon className="h-3.5 w-3.5" /><span className="hidden sm:inline">{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {activeSubTab === 'dashboard' && <SalesDashboardPage />}
+      {activeSubTab === 'leads' && <LeadManagementPage />}
+      {activeSubTab === 'contacts' && <ContactManagementPage />}
+      {activeSubTab === 'payments' && <PaymentTrackingPage />}
+      {activeSubTab === 'settings' && <SalesSettingsPage />}
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState('overview')
@@ -930,6 +967,7 @@ export default function AdminPage() {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'sales', label: 'Sales Tools', icon: TrendingUp },
     { id: 'branding', label: 'Branding', icon: Palette },
     { id: 'landing', label: 'Landing Page', icon: Layout },
     { id: 'ai-engine', label: 'AI Engine', icon: Sparkles },
@@ -960,6 +998,7 @@ export default function AdminPage() {
       </div>
 
       {activeTab === 'overview' && <OverviewTab />}
+      {activeTab === 'sales' && <SalesToolsTab />}
       {activeTab === 'branding' && <BrandingTab />}
       {activeTab === 'landing' && <LandingPageTab />}
       {activeTab === 'ai-engine' && <AIEngineTab />}
