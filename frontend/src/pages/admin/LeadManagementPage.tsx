@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Search, Filter, Plus, Edit2, Trash2, ArrowUpRight } from "lucide-react";
+import api from "@/utils/api";
 
 interface Lead {
   id: number;
@@ -37,15 +38,9 @@ export default function LeadManagementPage() {
 
   const fetchLeads = async () => {
     try {
-      const url = new URL("/api/v1/admin/sales/leads", window.location.origin);
-      if (statusFilter) {
-        url.searchParams.append("status", statusFilter);
-      }
-      const response = await fetch(url);
-      if (response.ok) {
-        const result = await response.json();
-        setLeads(result.items || []);
-      }
+      const params = statusFilter ? `?status=${statusFilter}` : "";
+      const { data } = await api.get(`/admin/sales/leads${params}`);
+      setLeads(data.items || []);
     } catch (error) {
       console.error("Failed to fetch leads:", error);
     } finally {
