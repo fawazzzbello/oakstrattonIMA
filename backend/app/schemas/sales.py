@@ -105,14 +105,17 @@ class AppointmentUpdate(BaseModel):
 class AppointmentResponse(BaseModel):
     id: int
     lead_id: int
+    contact_id: Optional[int] = None
     title: str
     description: Optional[str] = None
     scheduled_at: datetime
     duration_minutes: int
     timezone: str
-    meeting_type: str
+    meeting_type: Optional[str] = None
     meeting_url: Optional[str] = None
     meeting_notes: Optional[str] = None
+    google_calendar_id: Optional[str] = None
+    calendar_synced: bool
     status: str
     outcome: Optional[str] = None
     assigned_to_id: Optional[int] = None
@@ -240,6 +243,7 @@ class SalesProposalResponse(BaseModel):
     currency: str
     status: str
     template_id: Optional[int] = None
+    proposal_content: str
     valid_until: Optional[datetime] = None
     sent_at: Optional[datetime] = None
     opened_at: Optional[datetime] = None
